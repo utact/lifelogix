@@ -1,6 +1,6 @@
 ---
 name: "\U0001F4A1 Feature request"
-about: 새로운 기능이나 개선 아이디어를 제안해주세요
+about: "새로운 기능이나 개선 아이디어를 제안해주세요"
 title: "[FEAT] "
 labels: "enhancement"
 ---
