@@ -1,6 +1,6 @@
 ---
 name: "\U0001F41B Bug report"
-about: 버그를 발견했을 때 작성해주세요
+about: "버그를 발견했을 때 작성해주세요"
 title: "[BUG] "
 labels: "bug"
 ---
