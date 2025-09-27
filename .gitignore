@@ -1,3 +1,7 @@
+# Created by https://www.toptal.com/developers/gitignore/api/java,gradle,intellij,windows,macos,linux
+# Edit at https://www.toptal.com/developers/gitignore?templates=java,gradle,intellij,windows,macos,linux
+
+### Java ###
 # Compiled class file
 *.class
 
@@ -21,4 +25,119 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
-replay_pid*
+
+### Gradle ###
+.gradle
+/build/
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+
+# Avoid ignoring Gradle wrapper properties file (.properties files are usually ignored)
+!gradle/wrapper/gradle-wrapper.properties
+
+# Cache of project dependencies
+.gradletasknamecache
+
+# Gradle annotation processor cache
+.apt_generated/
+build-generated/
+
+# JNA Cache
+.jnacache/
+
+### Intellij ###
+# Covers IDEs like IntelliJ, WebStorm, PyCharm, RubyMine, PhpStorm, AppCode, Android Studio, CLion, GoLand, Rider, Fleet, Aqua
+.idea/
+
+# User-specific stuff
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/vcs.xml
+.idea/jsLibraryMappings.xml
+.idea/sqldialects.xml
+.idea/shelf/
+
+# Editor-based Rest Client
+.idea/httpRequests/
+
+# AWS User-specific stuff
+.idea/aws.xml
+
+# Build folder
+/out/
+
+# Caching files
+.idea/caches/
+
+# Gradle files
+.idea/gradle.xml
+
+# Rider files
+.idea/.idea.gradle.rider/
+.idea/.idea.मेटrik/
+.idea/.idea.sonarlint/
+
+### Linux ###
+*~
+
+# KDE directory preferences
+.directory
+
+# Linux trash folder which might appear on external disk
+.Trash-*
+
+# Coredumps
+core
+
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+
+### Windows ###
+# Windows thumbnail cache files
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
