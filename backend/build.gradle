@@ -6,7 +6,7 @@ plugins {
 
 group = 'com.lifelogix'
 version = '0.0.1-SNAPSHOT'
-description = 'The Operating System for Your Life's Ambitions'
+description = "The Operating System for Your Life's Ambitions"
 
 java {
 	toolchain {
