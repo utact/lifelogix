@@ -1,0 +1,14 @@
+spring:
+  # 도커 컴포즈 환경 변수 참고
+  datasource:
+    url: jdbc:postgresql://localhost:5432/lifelogix
+    username: lifelogix
+    password: lifelogix
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
