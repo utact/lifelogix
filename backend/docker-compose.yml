@@ -1,0 +1,26 @@
+# docker-compose up -d
+# docker-compose logs -f
+# docker-compose down (docker-compose down -v)
+
+# 실행하려는 컨테이너 그룹
+services:
+  db:
+    # 사용할 도커 이미지 -> postgres 15 버전
+    image: postgres:15
+
+    # 컨테이너의 이름
+    container_name: lifelogix-db
+
+    # 컨테이너 내부 환경 변수 -> PostgreSQL 컨테이너 초기 DB 설정
+    environment:
+      - POSTGRES_USER=lifelogix     # 데이터베이스 사용자 이름
+      - POSTGRES_PASSWORD=lifelogix # 데이터베이스 비밀번호
+      - POSTGRES_DB=lifelogix       # 데이터베이스 이름
+
+    # 포트 연결 -> 내 PC(호스트)의 5432 포트로 오는 요청을 컨테이너의 5432 포트로 전달
+    ports:
+      - "5432:5432"
+
+    # 데이터를 영속적으로 저장하기 위해 볼륨 연결
+    volumes:
+      - ./data:/var/lib/postgresql/data
