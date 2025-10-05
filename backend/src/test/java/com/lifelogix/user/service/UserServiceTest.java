@@ -21,10 +21,10 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
-    /* *
+    /**
      * @Mock: 테스트 대상(UserService)이 의존하는 객체들을 가짜(Mock)로 생성
      * -> 외부 환경(DB, 외부 API 등)으로부터 테스트 격리 가능
-     * */
+     **/
     @Mock
     private UserRepository userRepository;
 
@@ -34,18 +34,18 @@ class UserServiceTest {
     @Mock
     private JwtTokenProvider jwtTokenProvider;
 
-    /* *
+    /**
      * @InjectMocks: @Mock으로 생성된 가짜 객체들을 실제 테스트 대상(UserService)에 자동으로 주입
-     * */
+     **/
     @InjectMocks
     private UserService userService;
 
     @Test
     @DisplayName("회원가입 성공")
     void 회원가입이_성공해야_한다() {
-        /* *
+        /**
          * 1. Arrange (Given - 준비)
-         * */
+         **/
         String email = "test@example.com";
         String password = "!TestPassword123";
         String username = "tester";
@@ -61,14 +61,14 @@ class UserServiceTest {
         when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(fakeUser);
 
-        /* *
+        /**
          * 2. Act (When - 실행)
-         * */
+         **/
         User registeredUser = userService.register(email, password, username);
 
-        /* *
+        /**
          * 3. Assert (Then - 검증)
-         * */
+         **/
         assertThat(registeredUser).isNotNull();
         assertThat(registeredUser.getEmail()).isEqualTo(email);
         assertThat(registeredUser.getUsername()).isEqualTo(username);
@@ -82,9 +82,9 @@ class UserServiceTest {
     @Test
     @DisplayName("회원가입 실패 - 이메일 중복")
     void 중복된_이메일로는_회원가입할_수_없다() {
-        /* *
+        /**
          * 1. Arrange (Given - 준비)
-         * */
+         **/
         String email = "duplicate@example.com";
         String password = "!TestPassword123";
         String username = "tester";
@@ -92,9 +92,9 @@ class UserServiceTest {
         User existingUser = User.builder().id(1L).email(email).build();
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser));
 
-        /* *
+        /**
          * 2. Act & 3. Assert (When & Then - 실행 및 검증)
-         * */
+         **/
         assertThatThrownBy(() -> userService.register(email, password, username))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("이미 사용 중인 이메일입니다.");
@@ -106,9 +106,9 @@ class UserServiceTest {
     @Test
     @DisplayName("로그인 성공")
     void 올바른_정보로_로그인에_성공해야_한다() {
-        /* *
+        /**
          * 1. Arrange (Given - 준비)
-         * */
+         **/
         String email = "test@example.com";
         String rawPassword = "!TestPassword123";
         String encodedPassword = "encodedPassword";
@@ -125,14 +125,14 @@ class UserServiceTest {
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
         when(jwtTokenProvider.generateToken(foundUser)).thenReturn(fakeToken);
 
-        /* *
+        /**
          * 2. Act (When - 실행)
-         * */
+         **/
         String accessToken = userService.login(email, rawPassword);
 
-        /* *
+        /**
          * 3. Assert (Then - 검증)
-         * */
+         **/
         // 반환된 토큰이 예상한 가짜 토큰과 일치하는지 검증
         assertThat(accessToken).isEqualTo(fakeToken);
 
@@ -143,9 +143,9 @@ class UserServiceTest {
     @Test
     @DisplayName("로그인 실패 - 잘못된 비밀번호")
     void 잘못된_비밀번호로는_로그인할_수_없다() {
-        /* *
+        /**
          * 1. Arrange (Given - 준비)
-         * */
+         **/
         String email = "test@example.com";
         String wrongPassword = "wrongPassword";
         String encodedPassword = "encodedPassword";
@@ -160,9 +160,9 @@ class UserServiceTest {
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(foundUser));
         when(passwordEncoder.matches(wrongPassword, encodedPassword)).thenReturn(false);
 
-        /* *
+        /**
          * 2. Act & 3. Assert (When & Then - 실행 및 검증)
-         * */
+         **/
         assertThatThrownBy(() -> userService.login(email, wrongPassword))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("비밀번호가 일치하지 않습니다.");

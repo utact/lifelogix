@@ -26,11 +26,11 @@ public class JwtTokenProvider {
         this.expirationMilliseconds = expirationMilliseconds;
     }
 
-    /* *
+    /**
      * 사용자 정보를 기반으로 Access Token 생성
      * @param user 인증된 사용자 객체
      * @return 생성된 JWT 문자열
-     * */
+     **/
     public String generateToken(User user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationMilliseconds);

@@ -43,10 +43,10 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /* *
+    /**
      * Spring Security가 JWT 토큰을 검증할 때 사용하는 JwtDecoder를 Bean으로 등록
      * -> yml 파일에 설정한 비밀 키를 사용하여 디코더를 생성
-     * */
+     **/
     @Bean
     public JwtDecoder jwtDecoder() {
         // Base64 디코딩된 비밀 키를 사용하여 SecretKeySpec 객체를 생성
