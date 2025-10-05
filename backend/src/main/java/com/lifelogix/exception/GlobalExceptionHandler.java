@@ -2,51 +2,52 @@ package com.lifelogix.exception;
 
 import com.lifelogix.common.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
 
-/**
- * @RestControllerAdvice: 모든 @RestController에서 발생하는 예외를 전역적으로 처리
- **/
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * @ExceptionHandler: 특정 예외(IllegalArgumentException)가 발생했을 때
+     * @ResponseStatus 어노테이션이 붙은 모든 RuntimeException을 처리
      **/
-    @ExceptionHandler(DuplicateEmailException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateEmailException(DuplicateEmailException ex, HttpServletRequest request) {
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
+        // 1. 발생한 예외에서 @ResponseStatus 어노테이션을 체크
+        ResponseStatus responseStatus = AnnotationUtils.findAnnotation(ex.getClass(), ResponseStatus.class);
 
-        // API 명세에 맞는 에러 응답 객체를 생성
+        HttpStatus status;
+        String reason;
+
+        // 2. @ResponseStatus가 존재하면 해당 값을 사용
+        if (responseStatus != null) {
+            status = responseStatus.code();
+            reason = responseStatus.reason();
+        } else {
+            // 3. @ResponseStatus가 없으면 500 Internal Server Error를 기본값으로 사용
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+            reason = status.getReasonPhrase();
+        }
+
+        // 4. @ResponseStatus에 reason이 명시되지 않은 경우, HttpStatus의 기본 메시지를 사용 (방어 코드)
+        if (reason.isEmpty()) {
+            reason = status.getReasonPhrase();
+        }
+
         ErrorResponse errorResponse = new ErrorResponse(
                 LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(), // 409 Conflict 상태 코드
-                HttpStatus.CONFLICT.getReasonPhrase(), // "Conflict" 메시지
-                ex.getMessage(), // UserService에서 던진 실제 에러 메시지 (e.g., "이미 사용 중인 이메일입니다.")
-                request.getRequestURI() // 요청이 발생한 경로
+                status.value(),
+                reason,
+                ex.getMessage(),
+                request.getRequestURI()
         );
 
-        // 생성된 에러 응답을 ResponseEntity에 담아 409 상태 코드로 클라이언트에게 반환
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
-    }
-
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) {
-
-        // API 명세에 맞는 에러 응답 객체를 생성
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.UNAUTHORIZED.value(), // 401 Unauthorized 상태 코드
-                HttpStatus.UNAUTHORIZED.getReasonPhrase(), // "Unauthorized" 메시지
-                ex.getMessage(), // UserService에서 던진 실제 에러 메시지 (e.g., "사용자를 찾을 수 없습니다.")
-                request.getRequestURI() // 요청이 발생한 경로
-        );
-
-        // 생성된 에러 응답을 ResponseEntity에 담아 401 상태 코드로 클라이언트에게 반환
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>(errorResponse, status);
     }
 }
