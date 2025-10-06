@@ -1,4 +1,4 @@
-package com.lifelogix.user.dto;
+package com.lifelogix.user.api.dto.response;
 
 public record TokenResponse(
         String accessToken,

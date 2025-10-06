@@ -11,3 +11,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect # H2 DB 방언 명시
+
+jwt:
+  secret: bGlmZWxvZ2l4LWp3dC1zZWNyZXQta2V5LWZvci10ZXN0LWVudmlyb25tZW50Cg== # 테스트용 Base64 인코딩된 비밀 키
+  expiration-ms: 3600000 # 1시간

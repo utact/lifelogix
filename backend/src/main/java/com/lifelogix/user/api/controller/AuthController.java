@@ -1,9 +1,9 @@
-package com.lifelogix.user.controller;
+package com.lifelogix.user.api.controller;
 
-import com.lifelogix.user.dto.LoginRequest;
-import com.lifelogix.user.dto.RegisterRequest;
-import com.lifelogix.user.dto.TokenResponse;
-import com.lifelogix.user.service.UserService;
+import com.lifelogix.user.api.dto.request.LoginRequest;
+import com.lifelogix.user.api.dto.request.RegisterRequest;
+import com.lifelogix.user.api.dto.response.TokenResponse;
+import com.lifelogix.user.application.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -1,4 +1,4 @@
-package com.lifelogix.user.dto;
+package com.lifelogix.user.api.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
