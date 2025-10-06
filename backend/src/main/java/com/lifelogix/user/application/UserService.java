@@ -1,10 +1,10 @@
-package com.lifelogix.user.service;
+package com.lifelogix.user.application;
 
 import com.lifelogix.config.jwt.JwtTokenProvider;
 import com.lifelogix.exception.AuthenticationException;
 import com.lifelogix.exception.DuplicateEmailException;
 import com.lifelogix.user.domain.User;
-import com.lifelogix.user.repository.UserRepository;
+import com.lifelogix.user.domain.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
