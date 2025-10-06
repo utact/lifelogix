@@ -1,6 +1,8 @@
 package com.lifelogix.user.application;
 
 import com.lifelogix.config.jwt.JwtTokenProvider;
+import com.lifelogix.exception.AuthenticationException;
+import com.lifelogix.exception.DuplicateEmailException;
 import com.lifelogix.user.domain.User;
 import com.lifelogix.user.domain.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -96,7 +98,7 @@ class UserServiceTest {
          * 2. Act & 3. Assert (When & Then - 실행 및 검증)
          **/
         assertThatThrownBy(() -> userService.register(email, password, username))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(DuplicateEmailException.class)
                 .hasMessage("이미 사용 중인 이메일입니다.");
 
         verify(passwordEncoder, never()).encode(anyString());
@@ -164,7 +166,7 @@ class UserServiceTest {
          * 2. Act & 3. Assert (When & Then - 실행 및 검증)
          **/
         assertThatThrownBy(() -> userService.login(email, wrongPassword))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(AuthenticationException.class)
                 .hasMessage("비밀번호가 일치하지 않습니다.");
 
         // 로그인이 실패했으므로, 토큰 생성 로직은 절대 호출 Ｘ
