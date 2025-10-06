@@ -40,9 +40,9 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + expirationMilliseconds);
 
         return Jwts.builder()
-                .setSubject(user.getEmail())
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
+                .subject(user.getEmail())
+                .issuedAt(now)
+                .expiration(expiryDate)
                 .signWith(key) // Key를 통해 알고리즘 자동 선택 (HS256 or higher)
                 .compact();
     }
