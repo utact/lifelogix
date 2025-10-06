@@ -1,7 +1,6 @@
-package com.lifelogix.user.service;
+package com.lifelogix.user.application;
 
 import com.lifelogix.config.jwt.JwtTokenProvider;
-import com.lifelogix.user.application.UserService;
 import com.lifelogix.user.domain.User;
 import com.lifelogix.user.domain.UserRepository;
 import org.junit.jupiter.api.DisplayName;
