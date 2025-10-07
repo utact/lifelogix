@@ -18,13 +18,12 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
     /**
-     * @Mock: 테스트 대상(UserService)이 의존하는 객체들을 가짜(Mock)로 생성
+     * 테스트 대상(UserService)이 의존하는 객체들을 가짜(Mock)로 생성
      * -> 외부 환경(DB, 외부 API 등)으로부터 테스트 격리 가능
      **/
     @Mock
@@ -37,7 +36,7 @@ class UserServiceTest {
     private JwtTokenProvider jwtTokenProvider;
 
     /**
-     * @InjectMocks: @Mock으로 생성된 가짜 객체들을 실제 테스트 대상(UserService)에 자동으로 주입
+     * 생성된 가짜 객체들을 실제 테스트 대상(UserService)에 자동으로 주입
      **/
     @InjectMocks
     private UserService userService;
@@ -45,9 +44,7 @@ class UserServiceTest {
     @Test
     @DisplayName("회원가입 성공")
     void 회원가입이_성공해야_한다() {
-        /**
-         * 1. Arrange (Given - 준비)
-         **/
+        // 1. Arrange (Given - 준비)
         String email = "test@example.com";
         String password = "!TestPassword123";
         String username = "tester";
@@ -63,14 +60,10 @@ class UserServiceTest {
         when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(fakeUser);
 
-        /**
-         * 2. Act (When - 실행)
-         **/
+        // 2. Act (When - 실행)
         User registeredUser = userService.register(email, password, username);
 
-        /**
-         * 3. Assert (Then - 검증)
-         **/
+        // 3. Assert (Then - 검증)
         assertThat(registeredUser).isNotNull();
         assertThat(registeredUser.getEmail()).isEqualTo(email);
         assertThat(registeredUser.getUsername()).isEqualTo(username);
@@ -99,9 +92,7 @@ class UserServiceTest {
     @Test
     @DisplayName("로그인 성공")
     void 올바른_정보로_로그인에_성공해야_한다() {
-        /**
-         * 1. Arrange (Given - 준비)
-         **/
+        // 1. Arrange (Given - 준비)
         String email = "test@example.com";
         String rawPassword = "!TestPassword123";
         String encodedPassword = "encodedPassword";
@@ -118,18 +109,14 @@ class UserServiceTest {
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
         when(jwtTokenProvider.generateToken(foundUser)).thenReturn(fakeToken);
 
-        /**
-         * 2. Act (When - 실행)
-         **/
+        // 2. Act (When - 실행)
         String accessToken = userService.login(email, rawPassword);
 
-        /**
-         * 3. Assert (Then - 검증)
-         **/
-        // 반환된 토큰이 예상한 가짜 토큰과 일치하는지 검증
+        // 3. Assert (Then - 검증)
+        // - 반환된 토큰이 예상한 가짜 토큰과 일치하는지 검증
         assertThat(accessToken).isEqualTo(fakeToken);
 
-        // jwtTokenProvider.generateToken() 메서드가 정확히 1번 호출되었는지 검증
+        // - jwtTokenProvider.generateToken() 메서드가 정확히 1번 호출되었는지 검증
         verify(jwtTokenProvider).generateToken(foundUser);
     }
 

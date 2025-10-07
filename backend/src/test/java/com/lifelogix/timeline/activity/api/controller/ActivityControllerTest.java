@@ -44,18 +44,17 @@ class ActivityControllerTest {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
-    private User testUser;
     private String accessToken;
     private Category testCategory;
 
     @BeforeEach
     void setUp() {
-        testUser = User.builder().email("activity@test.com").password("p").username("activity user").build();
-        userRepository.save(testUser);
+        User tester = User.builder().email("activity@test.com").password("p").username("activity user").build();
+        userRepository.save(tester);
 
-        accessToken = jwtTokenProvider.generateToken(testUser);
+        accessToken = jwtTokenProvider.generateToken(tester);
 
-        testCategory = new Category("업무", "#123456", testUser, null);
+        testCategory = new Category("업무", "#123456", tester, null);
         categoryRepository.save(testCategory);
     }
 
