@@ -11,12 +11,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ActiveProfiles("test")
 @DataJpaTest
 class TimeBlockRepositoryTest {
 
@@ -50,16 +52,15 @@ class TimeBlockRepositoryTest {
     @DisplayName("타임블록 저장 및 조회")
     void 타임블록을_저장하고_조회하면_활동_정보가_올바르게_연결된다() {
         // given
-        LocalDate date = LocalDate.of(2025, 10, 6);
+        LocalDate date = LocalDate.of(2025, 10, 7);
         LocalTime startTime = LocalTime.of(15, 0);
         TimeBlock timeBlock = new TimeBlock(date, startTime, TimeBlockType.ACTUAL, savedActivity);
 
         // when
         TimeBlock savedTimeBlock = timeBlockRepository.save(timeBlock);
-        TimeBlock foundTimeBlock = timeBlockRepository.findById(savedTimeBlock.getId()).orElse(null);
+        TimeBlock foundTimeBlock = timeBlockRepository.findById(savedTimeBlock.getId()).orElseThrow();
 
         // then
-        assertThat(foundTimeBlock).isNotNull();
         assertThat(foundTimeBlock.getDate()).isEqualTo(date);
         assertThat(foundTimeBlock.getStartTime()).isEqualTo(startTime);
         assertThat(foundTimeBlock.getType()).isEqualTo(TimeBlockType.ACTUAL);

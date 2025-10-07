@@ -3,6 +3,7 @@ package com.lifelogix.timeline.timeblock.domain;
 import com.lifelogix.timeline.activity.domain.Activity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +13,7 @@ import java.time.LocalTime;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(of = "id")
 public class TimeBlock {
 
     @Id
@@ -32,8 +34,19 @@ public class TimeBlock {
     @JoinColumn(name = "activity_id", nullable = false)
     private Activity activity;
 
-    // 테스트 및 서비스 로직 편의를 위한 생성자
     public TimeBlock(LocalDate date, LocalTime startTime, TimeBlockType type, Activity activity) {
+        this.date = date;
+        this.startTime = startTime;
+        this.type = type;
+        this.activity = activity;
+    }
+
+    /**
+     * @deprecated 테스트 코드에서만 사용되는 생성자
+     **/
+    @Deprecated
+    public TimeBlock(Long id, LocalDate date, LocalTime startTime, TimeBlockType type, Activity activity) {
+        this.id = id;
         this.date = date;
         this.startTime = startTime;
         this.type = type;

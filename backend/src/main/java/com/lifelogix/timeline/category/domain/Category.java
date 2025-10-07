@@ -3,6 +3,7 @@ package com.lifelogix.timeline.category.domain;
 import com.lifelogix.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +13,7 @@ import java.util.List;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(of = "id")
 public class Category {
 
     @Id
@@ -25,18 +27,29 @@ public class Category {
     private String color;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id") // 시스템 카테고리의 경우 null
+    @JoinColumn(name = "user_id")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id") // 최상위 카테고리의 경우 null
+    @JoinColumn(name = "parent_id")
     private Category parent;
 
     @OneToMany(mappedBy = "parent")
     private List<Category> children = new ArrayList<>();
 
-    // 테스트 및 서비스 로직 편의를 위한 생성자
     public Category(String name, String color, User user, Category parent) {
+        this.name = name;
+        this.color = color;
+        this.user = user;
+        this.parent = parent;
+    }
+
+    /**
+     * @deprecated 테스트 코드에서만 사용되는 생성자
+     **/
+    @Deprecated
+    public Category(Long id, String name, String color, User user, Category parent) {
+        this.id = id;
         this.name = name;
         this.color = color;
         this.user = user;
