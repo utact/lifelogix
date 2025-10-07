@@ -15,6 +15,22 @@ import java.time.LocalDateTime;
 public class GlobalExceptionHandler {
 
     /**
+     * 유효하지 않은 인자 값(e.g., 존재하지 않는 ID)으로 인한 예외를 처리
+     * 400 Bad Request를 반환
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+
+    /**
      * @ResponseStatus 어노테이션이 붙은 모든 RuntimeException을 처리
      **/
     @ExceptionHandler(RuntimeException.class)

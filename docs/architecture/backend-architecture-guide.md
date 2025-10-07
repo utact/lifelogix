@@ -42,3 +42,10 @@
     3.  `SecurityFilterChain`에는 반드시 위에서 정의한 커스텀 `JwtAuthenticationConverter`를 적용해야 합니다.
 
 이 원칙을 통해, 모든 컨트롤러는 타입 변환에 대한 걱정 없이 `@AuthenticationPrincipal Long userId`를 사용하여 인증된 사용자의 ID를 안전하고 일관되게 주입받을 수 있습니다.
+
+## 3. 테스트 코드 원칙
+
+### 3.1. Assertion 라이브러리 사용법
+
+-   **원칙**: 모든 검증(Assertion) 로직은 AssertJ 라이브러리의 `org.assertj.core.api.Assertions` 클래스를 표준 진입점(entry point)으로 사용합니다.
+    -   **사유**: AssertJ는 `AssertionsForClassTypes` 등 여러 진입점을 제공하지만, `Assertions`가 모든 핵심 검증 메서드를 포함하는 대표 클래스입니다. 모든 테스트 코드에서 `Assertions` 클래스만 `static import`하여 사용하는 것으로 컨벤션을 통일하면, "이 메서드는 어느 클래스에서 가져와야 하는가?"라는 혼란을 방지하고 코드의 일관성을 극대화할 수 있습니다. 이는 AssertJ의 표준 사용법이기도 합니다.
