@@ -1,4 +1,4 @@
-package com.lifelogix.timeline.timeblock.domain;
+package com.lifelogix.timeline.core.domain;
 
 import com.lifelogix.timeline.activity.domain.Activity;
 import com.lifelogix.timeline.activity.domain.ActivityRepository;
