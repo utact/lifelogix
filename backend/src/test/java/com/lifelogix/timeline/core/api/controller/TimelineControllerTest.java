@@ -58,21 +58,20 @@ class TimelineControllerTest {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
-    private User testUser;
     private String accessToken;
     private Activity testActivity;
 
     @BeforeEach
     void setUp() {
-        testUser = User.builder().email("timeline@test.com").password("p").username("timelineuser").build();
-        userRepository.save(testUser);
+        User tester = User.builder().email("timeline@test.com").password("p").username("timeline user").build();
+        userRepository.save(tester);
 
-        accessToken = jwtTokenProvider.generateToken(testUser);
+        accessToken = jwtTokenProvider.generateToken(tester);
 
-        Category testCategory = new Category("자기계발", "#8E44AD", testUser, null);
+        Category testCategory = new Category("자기계발", "#8E44AD", tester, null);
         categoryRepository.save(testCategory);
 
-        testActivity = new Activity("알고리즘 공부", testUser, testCategory);
+        testActivity = new Activity("알고리즘 공부", tester, testCategory);
         activityRepository.save(testActivity);
     }
 

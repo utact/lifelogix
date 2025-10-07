@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,7 +52,7 @@ public class TimelineService {
 
     public TimelineResponse getDailyTimeline(Long userId, LocalDate date) {
         // 1. 특정 사용자의 특정 날짜 TimeBlock 목록을 모두 조회
-        List<TimeBlock> timeBlocks = timeBlockRepository.findByActivity_User_IdAndDate(userId, date);
+        List<TimeBlock> timeBlocks = timeBlockRepository.findByUserIdAndDate(userId, date);
 
         // 2. 조회된 TimeBlock들을 startTime을 기준으로 그룹핑
         Map<LocalTime, List<TimeBlock>> blocksByTime = timeBlocks.stream()
@@ -66,7 +67,7 @@ public class TimelineService {
         });
 
         // 4. 시간순으로 정렬
-        timeBlockResponses.sort((a, b) -> a.startTime().compareTo(b.startTime()));
+        timeBlockResponses.sort(Comparator.comparing(TimeBlockResponse::startTime));
 
         return new TimelineResponse(date, timeBlockResponses);
     }

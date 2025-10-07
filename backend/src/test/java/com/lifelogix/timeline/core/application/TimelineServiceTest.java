@@ -36,9 +36,6 @@ class TimelineServiceTest {
     @Mock
     private ActivityRepository activityRepository;
 
-    @Mock
-    private UserRepository userRepository;
-
     @InjectMocks
     private TimelineService timelineService;
 
@@ -93,7 +90,7 @@ class TimelineServiceTest {
                 new TimeBlock(testDate, LocalTime.of(18, 0), TimeBlockType.ACTUAL, gymActivity)
         );
 
-        when(timeBlockRepository.findByActivity_User_IdAndDate(userId, testDate)).thenReturn(timeBlocksFromDb);
+        when(timeBlockRepository.findByUserIdAndDate(userId, testDate)).thenReturn(timeBlocksFromDb);
 
         // when
         TimelineResponse response = timelineService.getDailyTimeline(userId, testDate);
