@@ -9,9 +9,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ActiveProfiles("test")
 @DataJpaTest
 class ActivityRepositoryTest {
 
@@ -29,11 +31,7 @@ class ActivityRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        User user = User.builder()
-                .email("tester@test.com")
-                .password("password123")
-                .username("tester")
-                .build();
+        User user = User.builder().email("tester@test.com").password("p").username("tester").build();
         savedUser = userRepository.save(user);
 
         Category category = new Category("업무", "#3498DB", savedUser, null);
@@ -48,10 +46,9 @@ class ActivityRepositoryTest {
 
         // when
         Activity savedActivity = activityRepository.save(activity);
-        Activity foundActivity = activityRepository.findById(savedActivity.getId()).orElse(null);
+        Activity foundActivity = activityRepository.findById(savedActivity.getId()).orElseThrow();
 
         // then
-        assertThat(foundActivity).isNotNull();
         assertThat(foundActivity.getName()).isEqualTo("회의");
         assertThat(foundActivity.getUser().getId()).isEqualTo(savedUser.getId());
         assertThat(foundActivity.getCategory().getId()).isEqualTo(savedCategory.getId());

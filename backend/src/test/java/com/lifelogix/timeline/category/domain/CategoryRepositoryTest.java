@@ -7,9 +7,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ActiveProfiles("test")
 @DataJpaTest
 class CategoryRepositoryTest {
 
@@ -24,11 +26,7 @@ class CategoryRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        User user = User.builder()
-                .email("tester@test.com")
-                .password("password123")
-                .username("tester")
-                .build();
+        User user = User.builder().email("tester@test.com").password("p").username("tester").build();
         savedUser = userRepository.save(user);
 
         parentCategory = new Category("학습", "#9B59B6", null, null);
@@ -43,10 +41,9 @@ class CategoryRepositoryTest {
 
         // when
         Category savedCategory = categoryRepository.save(customCategory);
-        Category foundCategory = categoryRepository.findById(savedCategory.getId()).orElse(null);
+        Category foundCategory = categoryRepository.findById(savedCategory.getId()).orElseThrow();
 
         // then
-        assertThat(foundCategory).isNotNull();
         assertThat(foundCategory.getName()).isEqualTo("AWS 자격증 공부");
         assertThat(foundCategory.getUser().getId()).isEqualTo(savedUser.getId());
         assertThat(foundCategory.getParent().getId()).isEqualTo(parentCategory.getId());

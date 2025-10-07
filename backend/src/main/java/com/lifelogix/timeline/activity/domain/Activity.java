@@ -4,12 +4,14 @@ import com.lifelogix.timeline.category.domain.Category;
 import com.lifelogix.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(of = "id")
 public class Activity {
 
     @Id
@@ -27,8 +29,18 @@ public class Activity {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    // 테스트 및 서비스 로직 편의를 위한 생성자
     public Activity(String name, User user, Category category) {
+        this.name = name;
+        this.user = user;
+        this.category = category;
+    }
+
+    /**
+     * @deprecated 테스트 코드에서만 사용되는 생성자
+     **/
+    @Deprecated
+    public Activity(Long id, String name, User user, Category category) {
+        this.id = id;
         this.name = name;
         this.user = user;
         this.category = category;
