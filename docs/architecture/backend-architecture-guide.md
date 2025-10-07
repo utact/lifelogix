@@ -43,9 +43,35 @@
 
 이 원칙을 통해, 모든 컨트롤러는 타입 변환에 대한 걱정 없이 `@AuthenticationPrincipal Long userId`를 사용하여 인증된 사용자의 ID를 안전하고 일관되게 주입받을 수 있습니다.
 
+---
+
 ## 3. 테스트 코드 원칙
 
 ### 3.1. Assertion 라이브러리 사용법
 
 -   **원칙**: 모든 검증(Assertion) 로직은 AssertJ 라이브러리의 `org.assertj.core.api.Assertions` 클래스를 표준 진입점(entry point)으로 사용합니다.
     -   **사유**: AssertJ는 `AssertionsForClassTypes` 등 여러 진입점을 제공하지만, `Assertions`가 모든 핵심 검증 메서드를 포함하는 대표 클래스입니다. 모든 테스트 코드에서 `Assertions` 클래스만 `static import`하여 사용하는 것으로 컨벤션을 통일하면, "이 메서드는 어느 클래스에서 가져와야 하는가?"라는 혼란을 방지하고 코드의 일관성을 극대화할 수 있습니다. 이는 AssertJ의 표준 사용법이기도 합니다.
+
+---
+
+## 4. 데이터 접근(Data Access) 원칙
+
+### 4.1. N+1 문제와 Fetch Join
+
+-   **원칙**: 연관된 엔티티를 함께 조회할 때는 **반드시 Fetch Join (`JOIN FETCH`)을 사용하여 N+1 문제를 예방**합니다.
+
+    -   **N+1 문제란?**: 연관관계가 설정된 엔티티를 조회할 때, 첫 쿼리(1) 이후 연관된 엔티티의 수(N)만큼 추가적인 쿼리가 발생하는 성능 저하 문제입니다. 예를 들어, 10개의 `TimeBlock`을 조회한 후, 각 `TimeBlock`에 연결된 `Activity` 정보를 얻기 위해 10번의 추가 쿼리가 발생하는 상황입니다.
+
+-   **해결책**: `JOIN FETCH`는 연관된 엔티티를 처음부터 함께 조회해오도록 JPA에게 지시하여, 단 한 번의 쿼리로 모든 데이터를 가져올 수 있게 합니다.
+
+### 4.2. 복잡한 쿼리는 `@Query` 사용
+
+-   **원칙**: 여러 엔티티를 조인하거나 복잡한 조건을 포함하는 쿼리는 Spring Data JPA의 긴 쿼리 메서드 이름 대신, **`@Query` 어노테이션을 사용하여 JPQL을 직접 작성**합니다.
+
+    -   **사유**: `findByActivity_User_IdAndDate`와 같은 긴 메서드 이름은 가독성을 해치고, 잠재적인 오타로 인한 오류를 유발하기 쉽습니다. `@Query`를 사용하면 SQL과 유사한 JPQL로 쿼리의 의도를 명확하게 표현할 수 있어 유지보수성이 크게 향상됩니다.
+
+-   **구현 예시 (`TimeBlockRepository`)**:
+    ```java
+    @Query("SELECT tb FROM TimeBlock tb JOIN FETCH tb.activity a JOIN FETCH a.category c WHERE a.user.id = :userId AND tb.date = :date")
+    List<TimeBlock> findByUserIdAndDate(@Param("userId") Long userId, @Param("date") LocalDate date);
+    ```
