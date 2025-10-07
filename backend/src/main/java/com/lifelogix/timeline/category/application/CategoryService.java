@@ -1,5 +1,7 @@
 package com.lifelogix.timeline.category.application;
 
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.timeline.category.api.dto.request.CreateCategoryRequest;
 import com.lifelogix.timeline.category.api.dto.response.CategoryResponse;
 import com.lifelogix.timeline.category.domain.Category;
@@ -24,11 +26,16 @@ public class CategoryService {
     public CategoryResponse createCustomCategory(Long userId, CreateCategoryRequest request) {
         // 1. 요청한 사용자 여부 체크
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. id=" + userId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // 2. 부모 카테고리 여부 체크
         Category parentCategory = categoryRepository.findById(request.parentId())
-                .orElseThrow(() -> new IllegalArgumentException("부모 카테고리를 찾을 수 없습니다. id=" + request.parentId()));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        // 부모 카테고리는 반드시 시스템 기본 카테고리 (소유자 X)
+        if (parentCategory.getUser() != null) {
+            throw new BusinessException(ErrorCode.INVALID_PARENT_CATEGORY);
+        }
 
         // 3. 새로운 카테고리 엔티티 생성
         Category newCategory = new Category(request.name(), request.color(), user, parentCategory);

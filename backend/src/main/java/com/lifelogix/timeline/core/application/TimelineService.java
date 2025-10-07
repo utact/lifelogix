@@ -1,5 +1,7 @@
 package com.lifelogix.timeline.core.application;
 
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.timeline.activity.domain.Activity;
 import com.lifelogix.timeline.activity.domain.ActivityRepository;
 import com.lifelogix.timeline.core.api.dto.request.CreateTimeBlockRequest;
@@ -32,11 +34,11 @@ public class TimelineService {
     @Transactional
     public BlockDetailResponse createTimeBlock(Long userId, CreateTimeBlockRequest request) {
         Activity activity = activityRepository.findById(request.activityId())
-                .orElseThrow(() -> new IllegalArgumentException("활동을 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND));
 
         // 활동의 소유자가 현재 사용자인지 검증
         if (!activity.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("해당 활동을 사용할 권한이 없습니다.");
+            throw new BusinessException(ErrorCode.PERMISSION_DENIED);
         }
 
         TimeBlock newTimeBlock = new TimeBlock(

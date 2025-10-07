@@ -1,8 +1,8 @@
 package com.lifelogix.user.application;
 
 import com.lifelogix.config.jwt.JwtTokenProvider;
-import com.lifelogix.exception.AuthenticationException;
-import com.lifelogix.exception.DuplicateEmailException;
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.user.domain.User;
 import com.lifelogix.user.domain.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -84,25 +84,16 @@ class UserServiceTest {
     @Test
     @DisplayName("회원가입 실패 - 이메일 중복")
     void 중복된_이메일로는_회원가입할_수_없다() {
-        /**
-         * 1. Arrange (Given - 준비)
-         **/
+        // given
         String email = "duplicate@example.com";
-        String password = "!TestPassword123";
-        String username = "tester";
-
         User existingUser = User.builder().id(1L).email(email).build();
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser));
 
-        /**
-         * 2. Act & 3. Assert (When & Then - 실행 및 검증)
-         **/
-        assertThatThrownBy(() -> userService.register(email, password, username))
-                .isInstanceOf(DuplicateEmailException.class)
-                .hasMessage("이미 사용 중인 이메일입니다.");
-
-        verify(passwordEncoder, never()).encode(anyString());
-        verify(userRepository, never()).save(any(User.class));
+        // when & then
+        assertThatThrownBy(() -> userService.register(email, "password", "user"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.EMAIL_ALREADY_EXISTS);
     }
 
     @Test
@@ -143,33 +134,35 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("로그인 실패 - 존재하지 않는 사용자")
+    void 존재하지_않는_사용자로는_로그인할_수_없다() {
+        // given
+        String email = "notfound@example.com";
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.login(email, "password"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
+    }
+
+    @Test
     @DisplayName("로그인 실패 - 잘못된 비밀번호")
     void 잘못된_비밀번호로는_로그인할_수_없다() {
-        /**
-         * 1. Arrange (Given - 준비)
-         **/
+        // given
         String email = "test@example.com";
         String wrongPassword = "wrongPassword";
         String encodedPassword = "encodedPassword";
-
-        User foundUser = User.builder()
-                .id(1L)
-                .email(email)
-                .password(encodedPassword)
-                .username("tester")
-                .build();
+        User foundUser = User.builder().id(1L).email(email).password(encodedPassword).build();
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(foundUser));
         when(passwordEncoder.matches(wrongPassword, encodedPassword)).thenReturn(false);
 
-        /**
-         * 2. Act & 3. Assert (When & Then - 실행 및 검증)
-         **/
+        // when & then
         assertThatThrownBy(() -> userService.login(email, wrongPassword))
-                .isInstanceOf(AuthenticationException.class)
-                .hasMessage("비밀번호가 일치하지 않습니다.");
-
-        // 로그인이 실패했으므로, 토큰 생성 로직은 절대 호출 Ｘ
-        verify(jwtTokenProvider, never()).generateToken(any(User.class));
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
     }
 }

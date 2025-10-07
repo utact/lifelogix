@@ -1,5 +1,7 @@
 package com.lifelogix.timeline.activity.application;
 
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.timeline.activity.api.dto.request.CreateActivityRequest;
 import com.lifelogix.timeline.activity.api.dto.response.ActivitiesByCategoryResponse;
 import com.lifelogix.timeline.activity.api.dto.response.ActivityResponse;
@@ -29,14 +31,14 @@ public class ActivityService {
     @Transactional
     public ActivityResponse createActivity(Long userId, CreateActivityRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
         // 카테고리의 소유자가 없거나(시스템 카테고리), 현재 사용자와 일치하는지 확인
         if (category.getUser() != null && !category.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("해당 카테고리를 사용할 권한이 없습니다.");
+            throw new BusinessException(ErrorCode.PERMISSION_DENIED);
         }
 
         Activity newActivity = new Activity(request.name(), user, category);

@@ -1,5 +1,7 @@
 package com.lifelogix.timeline.activity.application;
 
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.timeline.activity.api.dto.request.CreateActivityRequest;
 import com.lifelogix.timeline.activity.api.dto.response.ActivitiesByCategoryResponse;
 import com.lifelogix.timeline.activity.api.dto.response.ActivityResponse;
@@ -67,6 +69,29 @@ class ActivityServiceTest {
     }
 
     @Test
+    @DisplayName("활동 생성 실패 - 권한 없는 카테고리")
+    void 다른_사람의_카테고리로는_활동을_생성할_수_없다() {
+        // given
+        Long myUserId = 1L;
+        Long otherUserId = 2L;
+        Long otherUserCategoryId = 10L;
+        var request = new CreateActivityRequest("새로운 활동", otherUserCategoryId);
+
+        User fakeMe = User.builder().id(myUserId).build();
+        User fakeOtherUser = User.builder().id(otherUserId).build();
+        Category fakeOtherUsersCategory = new Category(otherUserCategoryId, "남의 카테고리", "#123", fakeOtherUser, null);
+
+        when(userRepository.findById(myUserId)).thenReturn(Optional.of(fakeMe));
+        when(categoryRepository.findById(otherUserCategoryId)).thenReturn(Optional.of(fakeOtherUsersCategory));
+
+        // when & then
+        assertThatThrownBy(() -> activityService.createActivity(myUserId, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PERMISSION_DENIED);
+    }
+
+    @Test
     @DisplayName("활동 목록 조회 (카테고리별 그룹화)")
     void 사용자의_모든_활동을_카테고리별로_그룹화하여_조회한다() {
         // given
@@ -98,29 +123,5 @@ class ActivityServiceTest {
         ActivitiesByCategoryResponse exerciseCategoryGroup = responses.get(1);
         assertThat(exerciseCategoryGroup.categoryName()).isEqualTo("운동");
         assertThat(exerciseCategoryGroup.activities()).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("활동 생성 실패 - 권한 없는 카테고리")
-    void 다른_사람의_카테고리로는_활동을_생성할_수_없다() {
-        // given
-        Long myUserId = 1L;
-        Long otherUserId = 2L;
-        Long otherUserCategoryId = 10L;
-        var request = new CreateActivityRequest("새로운 활동", otherUserCategoryId);
-
-        User fakeMe = User.builder().id(myUserId).build();
-        User fakeOtherUser = User.builder().id(otherUserId).build();
-        // 다른 사람 소유의 카테고리
-        Category fakeOtherUsersCategory = new Category(otherUserCategoryId, "남의 카테고리", "#123", fakeOtherUser, null);
-
-        when(userRepository.findById(myUserId)).thenReturn(Optional.of(fakeMe));
-        when(categoryRepository.findById(otherUserCategoryId)).thenReturn(Optional.of(fakeOtherUsersCategory));
-
-        // when & then
-        // 내(myUserId)가 남의 카테고리(otherUserCategoryId)로 활동 생성을 시도하면 예외가 발생해야 함
-        assertThatThrownBy(() -> activityService.createActivity(myUserId, request))
-                .isInstanceOf(IllegalArgumentException.class) // 혹은 더 구체적인 Custom Exception
-                .hasMessage("해당 카테고리를 사용할 권한이 없습니다.");
     }
 }

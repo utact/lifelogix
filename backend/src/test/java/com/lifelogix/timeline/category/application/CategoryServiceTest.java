@@ -1,5 +1,7 @@
 package com.lifelogix.timeline.category.application;
 
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.timeline.category.api.dto.request.CreateCategoryRequest;
 import com.lifelogix.timeline.category.api.dto.response.CategoryResponse;
 import com.lifelogix.timeline.category.domain.Category;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -58,6 +61,46 @@ class CategoryServiceTest {
         assertThat(response.name()).isEqualTo("AWS 자격증 공부");
         assertThat(response.isCustom()).isTrue();
         assertThat(response.parentId()).isEqualTo(parentId);
+    }
+
+    @Test
+    @DisplayName("카테고리 생성 실패 - 존재하지 않는 부모")
+    void 존재하지_않는_부모_카테고리로는_생성할_수_없다() {
+        // given
+        Long userId = 1L;
+        Long nonExistentParentId = 999L;
+        var request = new CreateCategoryRequest("실패 테스트", "#123", nonExistentParentId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder().id(userId).build()));
+        when(categoryRepository.findById(nonExistentParentId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> categoryService.createCustomCategory(userId, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.CATEGORY_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("카테고리 생성 실패 - 부모가 시스템 카테고리가 아님")
+    void 부모가_시스템_카테고리가_아니면_생성할_수_없다() {
+        // given
+        Long userId = 1L;
+        Long parentId = 10L;
+        var request = new CreateCategoryRequest("실패 테스트", "#123", parentId);
+
+        User fakeUser = User.builder().id(userId).build();
+        // user가 할당된, 사용자 정의 카테고리
+        Category fakeParentCategory = new Category(parentId, "남의 커스텀 카테고리", "#456", fakeUser, null);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(fakeUser));
+        when(categoryRepository.findById(parentId)).thenReturn(Optional.of(fakeParentCategory));
+
+        // when & then
+        assertThatThrownBy(() -> categoryService.createCustomCategory(userId, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_PARENT_CATEGORY);
     }
 
     @Test

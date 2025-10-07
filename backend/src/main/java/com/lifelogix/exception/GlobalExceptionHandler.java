@@ -1,69 +1,44 @@
 package com.lifelogix.exception;
 
-import com.lifelogix.common.ErrorResponse;
+import com.lifelogix.common.ErrorResponse; // common 패키지의 ErrorResponse 사용
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * 유효하지 않은 인자 값(e.g., 존재하지 않는 ID)으로 인한 예외를 처리
-     * 400 Bad Request를 반환
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+    // 직접 정의한 비즈니스 예외 처리
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex, HttpServletRequest request) {
+        ErrorCode errorCode = ex.getErrorCode();
         ErrorResponse errorResponse = new ErrorResponse(
                 LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                ex.getMessage(),
+                errorCode.getStatus().value(),
+                errorCode.getStatus().getReasonPhrase(),
+                errorCode.getMessage(),
                 request.getRequestURI()
         );
-        return ResponseEntity.badRequest().body(errorResponse);
+        log.warn("BusinessException Occurred: {}", errorResponse);
+        return new ResponseEntity<>(errorResponse, errorCode.getStatus());
     }
 
-    /**
-     * @ResponseStatus 어노테이션이 붙은 모든 RuntimeException을 처리
-     **/
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
-        // 1. 발생한 예외에서 @ResponseStatus 어노테이션을 체크
-        ResponseStatus responseStatus = AnnotationUtils.findAnnotation(ex.getClass(), ResponseStatus.class);
-
-        HttpStatus status;
-        String reason;
-
-        // 2. @ResponseStatus가 존재하면 해당 값을 사용
-        if (responseStatus != null) {
-            status = responseStatus.code();
-            reason = responseStatus.reason();
-        } else {
-            // 3. @ResponseStatus가 없으면 500 Internal Server Error를 기본값으로 사용
-            status = HttpStatus.INTERNAL_SERVER_ERROR;
-            reason = status.getReasonPhrase();
-        }
-
-        // 4. @ResponseStatus에 reason이 명시되지 않은 경우, HttpStatus의 기본 메시지를 사용 (방어 코드)
-        if (reason.isEmpty()) {
-            reason = status.getReasonPhrase();
-        }
-
+    // 처리하지 못한 모든 예외에 대한 최종 처리 (500 Internal Server Error)
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleAllUncaughtException(Exception ex, HttpServletRequest request) {
         ErrorResponse errorResponse = new ErrorResponse(
                 LocalDateTime.now(),
-                status.value(),
-                reason,
-                ex.getMessage(),
+                500,
+                "Internal Server Error",
+                "서버 내부 오류가 발생했습니다. 관리자에게 문의해주세요.",
                 request.getRequestURI()
         );
-
-        return new ResponseEntity<>(errorResponse, status);
+        log.error("Unhandled Exception Occurred:", ex); // 예상치 못한 오류는 error 레벨로 로그 기록
+        return new ResponseEntity<>(errorResponse, org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

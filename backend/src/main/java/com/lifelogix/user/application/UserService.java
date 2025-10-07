@@ -1,8 +1,8 @@
 package com.lifelogix.user.application;
 
 import com.lifelogix.config.jwt.JwtTokenProvider;
-import com.lifelogix.exception.AuthenticationException;
-import com.lifelogix.exception.DuplicateEmailException;
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.user.domain.User;
 import com.lifelogix.user.domain.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class UserService {
     public User register(String email, String password, String username) {
         // 1. 이메일 중복 확인 -> "중복된_이메일로는_회원가입할_수_없다"
         userRepository.findByEmail(email).ifPresent(user -> {
-            throw new DuplicateEmailException("이미 사용 중인 이메일입니다.");
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         });
 
         // 2. 비밀번호 암호화
@@ -48,11 +48,11 @@ public class UserService {
     public String login(String email, String password) {
         // 1. 이메일로 사용자 조회 -> 존재하지 않는 사용자 로그인 시도 검증
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AuthenticationException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTHENTICATION_FAILED));
 
         // 2. 비밀번호 일치 여부 확인 -> "잘못된_비밀번호로는_로그인할_수_없다"
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new AuthenticationException("비밀번호가 일치하지 않습니다.");
+            throw new BusinessException(ErrorCode.AUTHENTICATION_FAILED);
         }
 
         // 3. 인증 성공 시 JWT 생성 및 반환 -> "올바른_정보로_로그인에_성공해야_한다"

@@ -98,6 +98,6 @@ class ActivityControllerTest {
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest()); // 혹은 isNotFound(404) 등, 예외 처리 전략에 따라 상이
+                .andExpect(status().isNotFound());
     }
 }

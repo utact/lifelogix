@@ -1,5 +1,7 @@
 package com.lifelogix.timeline.core.application;
 
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.timeline.activity.domain.Activity;
 import com.lifelogix.timeline.activity.domain.ActivityRepository;
 import com.lifelogix.timeline.category.domain.Category;
@@ -10,7 +12,6 @@ import com.lifelogix.timeline.core.domain.TimeBlock;
 import com.lifelogix.timeline.core.domain.TimeBlockRepository;
 import com.lifelogix.timeline.core.domain.TimeBlockType;
 import com.lifelogix.user.domain.User;
-import com.lifelogix.user.domain.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +68,33 @@ class TimelineServiceTest {
         assertThat(response.activityId()).isEqualTo(activityId);
         assertThat(response.activityName()).isEqualTo("코딩");
         assertThat(response.categoryName()).isEqualTo("업무");
+    }
+
+    @Test
+    @DisplayName("타임블록 생성 실패 - 권한 없는 활동")
+    void 다른_사람의_활동으로는_타임블록을_생성할_수_없다() {
+        // given
+        Long myUserId = 1L;
+        Long otherUserId = 2L;
+        Long otherUserActivityId = 10L;
+        var request = new CreateTimeBlockRequest(
+                LocalDate.of(2025, 10, 7),
+                LocalTime.of(10, 0),
+                TimeBlockType.ACTUAL,
+                otherUserActivityId
+        );
+
+        User fakeOtherUser = new User(otherUserId, "other@test.com", "p", "other");
+        Category fakeCategory = new Category(100L, "업무", "#123", fakeOtherUser, null);
+        Activity fakeOtherUserActivity = new Activity(otherUserActivityId, "남의 활동", fakeOtherUser, fakeCategory);
+
+        when(activityRepository.findById(otherUserActivityId)).thenReturn(Optional.of(fakeOtherUserActivity));
+
+        // when & then
+        assertThatThrownBy(() -> timelineService.createTimeBlock(myUserId, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PERMISSION_DENIED);
     }
 
     @Test
