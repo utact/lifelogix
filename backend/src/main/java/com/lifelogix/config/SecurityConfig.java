@@ -3,19 +3,23 @@ package com.lifelogix.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
+import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
@@ -33,23 +37,33 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                // OAuth2 리소스 서버 설정을 JWT 방식으로 사용하도록 지정
-                // 별도의 decoder 설정이 없으면 자동으로 jwtDecoder() Bean을 사용
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                // OAuth2 리소스 서버 설정을 JWT 방식으로 사용
+                // 직접 만든 jwtAuthenticationConverter를 사용하도록 설정
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
+                        jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
+                ));
 
         return http.build();
     }
 
     /**
-     * Spring Security가 JWT를 검증할 때 사용하는 JwtDecoder를 정의
-     * NimbusJwtDecoder를 사용하며, application.yml의 비밀 키로 초기화
+     * JWT 토큰을 원하는 형태의 인증(Authentication) 객체로 변환하는 방법을 정의
+     * 이 Converter는 토큰의 'sub' 클레임(사용자 ID)을 Principal로 사용하는 인증 객체를 생성
      **/
     @Bean
+    public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
+        return jwt -> {
+            Long userId = Long.parseLong(jwt.getSubject());
+            // UsernamePasswordAuthenticationToken을 사용하여 Principal을 Long 타입의 userId로 설정
+            // 비밀번호는 사용하지 않으므로 null, 권한은 비워둠
+            return new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+        };
+    }
+
+    @Bean
     public JwtDecoder jwtDecoder() {
-        // JwtTokenProvider에서 토큰을 생성할 때 Base64 디코딩된 키를 사용하니, 검증 시에도 Base64 디코딩을 수행해야 서명 검증 성공
         byte[] decodedKey = Base64.getDecoder().decode(secretKey);
         SecretKeySpec secretKeySpec = new SecretKeySpec(decodedKey, "HmacSHA256");
-
         return NimbusJwtDecoder.withSecretKey(secretKeySpec).build();
     }
 

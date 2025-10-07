@@ -25,9 +25,9 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
         userService.register(
-                registerRequest.getEmail(),
-                registerRequest.getPassword(),
-                registerRequest.getUsername()
+                registerRequest.email(),
+                registerRequest.password(),
+                registerRequest.username()
         );
 
         // API 명세에 따른 성공 응답 생성
@@ -39,7 +39,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
         // 1. UserService를 통해 인증 후 JWT 토큰 받기
-        String accessToken = userService.login(loginRequest.getEmail(), loginRequest.getPassword());
+        String accessToken = userService.login(loginRequest.email(), loginRequest.password());
 
         // 2. API 명세에 따라 TokenResponse DTO로 감싸서 응답
         TokenResponse tokenResponse = TokenResponse.of(accessToken);
