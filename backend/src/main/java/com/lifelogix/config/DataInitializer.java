@@ -18,7 +18,7 @@ public class DataInitializer implements ApplicationRunner {
 
     @Override
     @Transactional
-    public void run(ApplicationArguments args) throws Exception {
+    public void run(ApplicationArguments args) {
         if (categoryRepository.count() > 0) {
             return;
         }
