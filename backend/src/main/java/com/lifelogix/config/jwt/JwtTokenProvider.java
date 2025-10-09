@@ -1,41 +1,46 @@
 package com.lifelogix.config.jwt;
 
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.user.domain.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
+import io.jsonwebtoken.security.SecurityException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 
-/**
- * JWT(Access Token)의 생성을 담당하는 Provider 클래스
- * 토큰의 검증 및 파싱 관련 로직은 Spring Security의 JwtDecoder에 위임
- **/
+@Slf4j
 @Component
 public class JwtTokenProvider {
 
     private final SecretKey key;
-    private final long expirationMilliseconds;
+    private final long accessTokenExpirationMilliseconds;
+    private final long refreshTokenExpirationMilliseconds;
 
-    public JwtTokenProvider(
-            @Value("${jwt.secret}") String secretKey,
-            @Value("${jwt.expiration-ms}") long expirationMilliseconds
-    ) {
-        // application.yml의 secret key는 Base64로 인코딩된 값이므로, 디코딩하여 SecretKey 객체를 생성
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+    public JwtTokenProvider(JwtProperties jwtProperties) { // @ConfigurationProperties 사용
+        byte[] keyBytes = Decoders.BASE64.decode(jwtProperties.getSecret());
         this.key = Keys.hmacShaKeyFor(keyBytes);
-        this.expirationMilliseconds = expirationMilliseconds;
+        this.accessTokenExpirationMilliseconds = jwtProperties.getAccessTokenExpirationMs();
+        this.refreshTokenExpirationMilliseconds = jwtProperties.getRefreshTokenExpirationMs();
     }
 
-    /**
-     * 사용자 정보를 기반으로 Access Token을 생성
-     * @param user 인증된 사용자 객체
-     * @return 생성된 JWT 문자열
-     **/
-    public String generateToken(User user) {
+    public String generateAccessToken(User user) {
+        return generateToken(user, accessTokenExpirationMilliseconds);
+    }
+
+    public String generateRefreshToken(User user) {
+        return generateToken(user, refreshTokenExpirationMilliseconds);
+    }
+
+    private String generateToken(User user, long expirationMilliseconds) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationMilliseconds);
 
@@ -43,7 +48,35 @@ public class JwtTokenProvider {
                 .subject(user.getId().toString())
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(key) // Key를 통해 알고리즘 자동 선택 (HS256 or higher)
+                .signWith(key)
                 .compact();
+    }
+
+    public Long getUserIdFromToken(String token) {
+        return Long.parseLong(getClaims(token).getSubject());
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            getClaims(token);
+            return true;
+        } catch (ExpiredJwtException e) {
+            log.warn("Expired JWT token: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.TOKEN_EXPIRED);
+        } catch (SecurityException | MalformedJwtException e) { // 서명 오류, 형식 오류를 더 구체적으로 로깅
+            log.warn("Invalid JWT token: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.TOKEN_INVALID);
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("JWT error: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.TOKEN_INVALID);
+        }
+    }
+
+    private Claims getClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }
