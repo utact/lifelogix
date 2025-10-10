@@ -11,6 +11,7 @@ public enum ErrorCode {
     // 400 BAD_REQUEST
     INVALID_PARENT_CATEGORY(HttpStatus.BAD_REQUEST, "시스템 기본 카테고리만 부모로 지정할 수 있습니다."),
     CATEGORY_IN_USE(HttpStatus.BAD_REQUEST, "해당 카테고리를 사용하는 활동이 존재하여 삭제할 수 없습니다."),
+    ACTIVITY_IN_USE(HttpStatus.BAD_REQUEST, "해당 활동을 사용하는 타임블록이 존재하여 삭제할 수 없습니다."),
 
     // 401 UNAUTHORIZED
     AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다."),

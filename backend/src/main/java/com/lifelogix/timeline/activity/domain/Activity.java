@@ -35,14 +35,15 @@ public class Activity {
         this.category = category;
     }
 
-    /**
-     * @deprecated 테스트 코드에서만 사용되는 생성자
-     **/
     @Deprecated
     public Activity(Long id, String name, User user, Category category) {
         this.id = id;
         this.name = name;
         this.user = user;
         this.category = category;
+    }
+
+    public void update(String name) {
+        this.name = name;
     }
 }
