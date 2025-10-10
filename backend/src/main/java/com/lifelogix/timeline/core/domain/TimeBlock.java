@@ -41,15 +41,19 @@ public class TimeBlock {
         this.activity = activity;
     }
 
-    /**
-     * @deprecated 테스트 코드에서만 사용되는 생성자
-     **/
     @Deprecated
     public TimeBlock(Long id, LocalDate date, LocalTime startTime, TimeBlockType type, Activity activity) {
         this.id = id;
         this.date = date;
         this.startTime = startTime;
         this.type = type;
+        this.activity = activity;
+    }
+
+    /**
+     * 타임블록에 기록된 활동을 변경
+     **/
+    public void updateActivity(Activity activity) {
         this.activity = activity;
     }
 }
