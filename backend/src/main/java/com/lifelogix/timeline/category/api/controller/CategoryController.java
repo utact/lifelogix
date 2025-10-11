@@ -1,8 +1,10 @@
 package com.lifelogix.timeline.category.api.controller;
 
 import com.lifelogix.timeline.category.api.dto.request.CreateCategoryRequest;
+import com.lifelogix.timeline.category.api.dto.request.UpdateCategoryRequest;
 import com.lifelogix.timeline.category.api.dto.response.CategoryResponse;
 import com.lifelogix.timeline.category.application.CategoryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,12 +25,10 @@ public class CategoryController {
      **/
     @PostMapping
     public ResponseEntity<CategoryResponse> createCustomCategory(
-            @AuthenticationPrincipal Long userId, // JWT 토큰에서 사용자 ID 추출
-            @RequestBody CreateCategoryRequest request) {
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody CreateCategoryRequest request) { // 👈 @Valid 추가
 
         CategoryResponse response = categoryService.createCustomCategory(userId, request);
-
-        // 생성된 리소스의 URI를 Location 헤더에 담아 201 Created 응답 반환
         URI location = URI.create("/api/v1/categories/" + response.id());
         return ResponseEntity.created(location).body(response);
     }
@@ -38,9 +38,34 @@ public class CategoryController {
      **/
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getAllCategories(
-            @AuthenticationPrincipal Long userId) { // JWT 토큰에서 사용자 ID 추출
+            @AuthenticationPrincipal Long userId) {
 
         List<CategoryResponse> responses = categoryService.findAllCategoriesForUser(userId);
         return ResponseEntity.ok(responses);
+    }
+
+    /**
+     * 자신의 커스텀 카테고리 정보를 수정
+     **/
+    @PutMapping("/{categoryId}")
+    public ResponseEntity<CategoryResponse> updateCustomCategory(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long categoryId,
+            @Valid @RequestBody UpdateCategoryRequest request) {
+
+        CategoryResponse response = categoryService.updateCustomCategory(userId, categoryId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 자신의 커스텀 카테고리를 삭제
+     **/
+    @DeleteMapping("/{categoryId}")
+    public ResponseEntity<Void> deleteCustomCategory(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long categoryId) {
+
+        categoryService.deleteCustomCategory(userId, categoryId);
+        return ResponseEntity.noContent().build(); // 204 No Content 응답
     }
 }

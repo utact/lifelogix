@@ -44,9 +44,6 @@ public class Category {
         this.parent = parent;
     }
 
-    /**
-     * @deprecated 테스트 코드에서만 사용되는 생성자
-     **/
     @Deprecated
     public Category(Long id, String name, String color, User user, Category parent) {
         this.id = id;
@@ -54,5 +51,10 @@ public class Category {
         this.color = color;
         this.user = user;
         this.parent = parent;
+    }
+
+    public void update(String name, String color) {
+        this.name = name;
+        this.color = color;
     }
 }

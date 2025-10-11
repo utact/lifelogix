@@ -1,6 +1,7 @@
 package com.lifelogix.timeline.activity.api.controller;
 
 import com.lifelogix.timeline.activity.api.dto.request.CreateActivityRequest;
+import com.lifelogix.timeline.activity.api.dto.request.UpdateActivityRequest;
 import com.lifelogix.timeline.activity.api.dto.response.ActivitiesByCategoryResponse;
 import com.lifelogix.timeline.activity.api.dto.response.ActivityResponse;
 import com.lifelogix.timeline.activity.application.ActivityService;
@@ -29,8 +30,6 @@ public class ActivityController {
             @Valid @RequestBody CreateActivityRequest request) {
 
         ActivityResponse response = activityService.createActivity(userId, request);
-
-        // 생성된 활동의 URI를 Location 헤더에 담아 201 Created 응답 반환
         URI location = URI.create("/api/v1/activities/" + response.id());
         return ResponseEntity.created(location).body(response);
     }
@@ -44,5 +43,30 @@ public class ActivityController {
 
         List<ActivitiesByCategoryResponse> responses = activityService.findAllActivitiesGroupedByCategory(userId);
         return ResponseEntity.ok(responses);
+    }
+
+    /**
+     * 자신의 활동 정보를 수정
+     **/
+    @PutMapping("/{activityId}")
+    public ResponseEntity<ActivityResponse> updateActivity(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long activityId,
+            @Valid @RequestBody UpdateActivityRequest request) {
+
+        ActivityResponse response = activityService.updateActivity(userId, activityId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 자신의 활동을 삭제
+     **/
+    @DeleteMapping("/{activityId}")
+    public ResponseEntity<Void> deleteActivity(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long activityId) {
+
+        activityService.deleteActivity(userId, activityId);
+        return ResponseEntity.noContent().build();
     }
 }

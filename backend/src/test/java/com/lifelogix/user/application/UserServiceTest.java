@@ -3,9 +3,11 @@ package com.lifelogix.user.application;
 import com.lifelogix.config.jwt.JwtTokenProvider;
 import com.lifelogix.exception.BusinessException;
 import com.lifelogix.exception.ErrorCode;
+import com.lifelogix.user.api.dto.response.TokenResponse;
 import com.lifelogix.user.domain.User;
 import com.lifelogix.user.domain.UserRepository;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,10 +24,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
-    /**
-     * 테스트 대상(UserService)이 의존하는 객체들을 가짜(Mock)로 생성
-     * -> 외부 환경(DB, 외부 API 등)으로부터 테스트 격리 가능
-     **/
+
     @Mock
     private UserRepository userRepository;
 
@@ -35,121 +34,132 @@ class UserServiceTest {
     @Mock
     private JwtTokenProvider jwtTokenProvider;
 
-    /**
-     * 생성된 가짜 객체들을 실제 테스트 대상(UserService)에 자동으로 주입
-     **/
     @InjectMocks
     private UserService userService;
 
-    @Test
-    @DisplayName("회원가입 성공")
-    void 회원가입이_성공해야_한다() {
-        // 1. Arrange (Given - 준비)
-        String email = "test@example.com";
-        String password = "!TestPassword123";
-        String username = "tester";
+    @Nested
+    @DisplayName("회원가입")
+    class RegisterTest {
 
-        User fakeUser = User.builder()
-                .id(1L)
-                .email(email)
-                .password("encodedPassword")
-                .username(username)
-                .build();
+        @Test
+        @DisplayName("성공")
+        void 회원가입이_성공해야_한다() {
+            // given
+            String email = "test@example.com";
+            String password = "!TestPassword123";
+            String username = "tester";
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
-        when(userRepository.save(any(User.class))).thenReturn(fakeUser);
+            when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+            when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
 
-        // 2. Act (When - 실행)
-        User registeredUser = userService.register(email, password, username);
+            // when
+            userService.register(email, password, username);
 
-        // 3. Assert (Then - 검증)
-        assertThat(registeredUser).isNotNull();
-        assertThat(registeredUser.getEmail()).isEqualTo(email);
-        assertThat(registeredUser.getUsername()).isEqualTo(username);
-        assertThat(registeredUser.getId()).isEqualTo(1L);
+            // then
+            verify(userRepository).save(any(User.class));
+        }
 
-        verify(userRepository).findByEmail(email);
-        verify(passwordEncoder).encode(password);
-        verify(userRepository).save(any(User.class));
+        @Test
+        @DisplayName("실패 - 이메일 중복")
+        void 중복된_이메일로는_회원가입할_수_없다() {
+            // given
+            String email = "duplicate@example.com";
+            User existingUser = User.builder().id(1L).email(email).build();
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser));
+
+            // when & then
+            assertThatThrownBy(() -> userService.register(email, "password", "user"))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
     }
 
-    @Test
-    @DisplayName("회원가입 실패 - 이메일 중복")
-    void 중복된_이메일로는_회원가입할_수_없다() {
-        // given
-        String email = "duplicate@example.com";
-        User existingUser = User.builder().id(1L).email(email).build();
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser));
+    @Nested
+    @DisplayName("로그인")
+    class LoginTest {
 
-        // when & then
-        assertThatThrownBy(() -> userService.register(email, "password", "user"))
-                .isInstanceOf(BusinessException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.EMAIL_ALREADY_EXISTS);
+        @Test
+        @DisplayName("성공")
+        void 올바른_정보로_로그인에_성공해야_한다() {
+            // given
+            String email = "test@example.com";
+            String rawPassword = "!TestPassword123";
+            String encodedPassword = "encodedPassword";
+            String fakeAccessToken = "fake.access.token";
+            String fakeRefreshToken = "fake.refresh.token";
+
+            User foundUser = mock(User.class);
+            when(foundUser.getId()).thenReturn(1L);
+            when(foundUser.getEmail()).thenReturn(email);
+            when(foundUser.getPassword()).thenReturn(encodedPassword);
+
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(foundUser));
+            when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
+            when(jwtTokenProvider.generateAccessToken(foundUser)).thenReturn(fakeAccessToken);
+            when(jwtTokenProvider.generateRefreshToken(foundUser)).thenReturn(fakeRefreshToken);
+
+            // when
+            TokenResponse tokenResponse = userService.login(email, rawPassword);
+
+            // then
+            assertThat(tokenResponse.accessToken()).isEqualTo(fakeAccessToken);
+            assertThat(tokenResponse.refreshToken()).isEqualTo(fakeRefreshToken);
+            verify(foundUser).updateRefreshToken(fakeRefreshToken);
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 사용자")
+        void 존재하지_않는_사용자로는_로그인할_수_없다() {
+            // given
+            String email = "notfound@example.com";
+            when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> userService.login(email, "password"))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
+        }
+
+        @Test
+        @DisplayName("실패 - 잘못된 비밀번호")
+        void 잘못된_비밀번호로는_로그인할_수_없다() {
+            // given
+            String email = "test@example.com";
+            String wrongPassword = "wrongPassword";
+            String encodedPassword = "encodedPassword";
+            User foundUser = User.builder().id(1L).email(email).password(encodedPassword).build();
+
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(foundUser));
+            when(passwordEncoder.matches(wrongPassword, encodedPassword)).thenReturn(false);
+
+            // when & then
+            assertThatThrownBy(() -> userService.login(email, wrongPassword))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
+        }
     }
 
-    @Test
-    @DisplayName("로그인 성공")
-    void 올바른_정보로_로그인에_성공해야_한다() {
-        // 1. Arrange (Given - 준비)
-        String email = "test@example.com";
-        String rawPassword = "!TestPassword123";
-        String encodedPassword = "encodedPassword";
-        String fakeToken = "fake.jwt.token";
+    @Nested
+    @DisplayName("사용자 정보 조회")
+    class GetUserByIdTest {
 
-        User foundUser = User.builder()
-                .id(1L)
-                .email(email)
-                .password(encodedPassword)
-                .username("tester")
-                .build();
+        @Test
+        @DisplayName("성공")
+        void ID로_사용자_정보를_조회한다() {
+            // given
+            Long userId = 1L;
+            User fakeUser = User.builder().id(userId).email("test@test.com").username("tester").build();
+            when(userRepository.findById(userId)).thenReturn(Optional.of(fakeUser));
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(foundUser));
-        when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
-        when(jwtTokenProvider.generateToken(foundUser)).thenReturn(fakeToken);
+            // when
+            User foundUser = userService.getUserById(userId);
 
-        // 2. Act (When - 실행)
-        String accessToken = userService.login(email, rawPassword);
-
-        // 3. Assert (Then - 검증)
-        // - 반환된 토큰이 예상한 가짜 토큰과 일치하는지 검증
-        assertThat(accessToken).isEqualTo(fakeToken);
-
-        // - jwtTokenProvider.generateToken() 메서드가 정확히 1번 호출되었는지 검증
-        verify(jwtTokenProvider).generateToken(foundUser);
-    }
-
-    @Test
-    @DisplayName("로그인 실패 - 존재하지 않는 사용자")
-    void 존재하지_않는_사용자로는_로그인할_수_없다() {
-        // given
-        String email = "notfound@example.com";
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> userService.login(email, "password"))
-                .isInstanceOf(BusinessException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
-    }
-
-    @Test
-    @DisplayName("로그인 실패 - 잘못된 비밀번호")
-    void 잘못된_비밀번호로는_로그인할_수_없다() {
-        // given
-        String email = "test@example.com";
-        String wrongPassword = "wrongPassword";
-        String encodedPassword = "encodedPassword";
-        User foundUser = User.builder().id(1L).email(email).password(encodedPassword).build();
-
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(foundUser));
-        when(passwordEncoder.matches(wrongPassword, encodedPassword)).thenReturn(false);
-
-        // when & then
-        assertThatThrownBy(() -> userService.login(email, wrongPassword))
-                .isInstanceOf(BusinessException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
+            // then
+            assertThat(foundUser.getId()).isEqualTo(userId);
+            assertThat(foundUser.getEmail()).isEqualTo("test@test.com");
+        }
     }
 }
