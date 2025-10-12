@@ -7,10 +7,10 @@ import com.lifelogix.timeline.category.application.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -25,9 +25,10 @@ public class CategoryController {
      **/
     @PostMapping
     public ResponseEntity<CategoryResponse> createCustomCategory(
-            @AuthenticationPrincipal Long userId,
-            @Valid @RequestBody CreateCategoryRequest request) { // 👈 @Valid 추가
+            Principal principal,
+            @Valid @RequestBody CreateCategoryRequest request) {
 
+        Long userId = Long.parseLong(principal.getName());
         CategoryResponse response = categoryService.createCustomCategory(userId, request);
         URI location = URI.create("/api/v1/categories/" + response.id());
         return ResponseEntity.created(location).body(response);
@@ -38,8 +39,9 @@ public class CategoryController {
      **/
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getAllCategories(
-            @AuthenticationPrincipal Long userId) {
+            Principal principal) {
 
+        Long userId = Long.parseLong(principal.getName());
         List<CategoryResponse> responses = categoryService.findAllCategoriesForUser(userId);
         return ResponseEntity.ok(responses);
     }
@@ -49,10 +51,11 @@ public class CategoryController {
      **/
     @PutMapping("/{categoryId}")
     public ResponseEntity<CategoryResponse> updateCustomCategory(
-            @AuthenticationPrincipal Long userId,
+            Principal principal,
             @PathVariable Long categoryId,
             @Valid @RequestBody UpdateCategoryRequest request) {
 
+        Long userId = Long.parseLong(principal.getName());
         CategoryResponse response = categoryService.updateCustomCategory(userId, categoryId, request);
         return ResponseEntity.ok(response);
     }
@@ -62,10 +65,11 @@ public class CategoryController {
      **/
     @DeleteMapping("/{categoryId}")
     public ResponseEntity<Void> deleteCustomCategory(
-            @AuthenticationPrincipal Long userId,
+            Principal principal,
             @PathVariable Long categoryId) {
 
+        Long userId = Long.parseLong(principal.getName());
         categoryService.deleteCustomCategory(userId, categoryId);
-        return ResponseEntity.noContent().build(); // 204 No Content 응답
+        return ResponseEntity.noContent().build();
     }
 }
