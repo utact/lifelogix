@@ -1,0 +1,8 @@
+# Render 배포 환경(prod) 전용 설정
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
