@@ -18,12 +18,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("UserService 단위 테스트")
 class UserServiceTest {
+
+    @InjectMocks
+    private UserService userService;
 
     @Mock
     private UserRepository userRepository;
@@ -34,132 +38,203 @@ class UserServiceTest {
     @Mock
     private JwtTokenProvider jwtTokenProvider;
 
-    @InjectMocks
-    private UserService userService;
+    // 공통 사용 변수
+    private final String email = "test@example.com";
+    private final String password = "password123";
+    private final String username = "tester";
+    private final Long userId = 1L;
 
     @Nested
-    @DisplayName("회원가입")
+    @DisplayName("회원가입 기능")
     class RegisterTest {
 
         @Test
         @DisplayName("성공")
-        void 회원가입이_성공해야_한다() {
+        void register_success() {
             // given
-            String email = "test@example.com";
-            String password = "!TestPassword123";
-            String username = "tester";
-
-            when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-            when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
+            given(userRepository.findByEmail(email)).willReturn(Optional.empty());
+            given(passwordEncoder.encode(password)).willReturn("encodedPassword");
 
             // when
             userService.register(email, password, username);
 
             // then
-            verify(userRepository).save(any(User.class));
+            then(userRepository).should(times(1)).save(any(User.class));
         }
 
         @Test
-        @DisplayName("실패 - 이메일 중복")
-        void 중복된_이메일로는_회원가입할_수_없다() {
+        @DisplayName("실패 - 이미 존재하는 이메일")
+        void register_fail_emailAlreadyExists() {
             // given
-            String email = "duplicate@example.com";
-            User existingUser = User.builder().id(1L).email(email).build();
-            when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser));
+            given(userRepository.findByEmail(email)).willReturn(Optional.of(mock(User.class)));
 
-            // when & then
-            assertThatThrownBy(() -> userService.register(email, "password", "user"))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(ErrorCode.EMAIL_ALREADY_EXISTS);
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> userService.register(email, password, username));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
     }
 
     @Nested
-    @DisplayName("로그인")
+    @DisplayName("로그인 기능")
     class LoginTest {
-
         @Test
         @DisplayName("성공")
-        void 올바른_정보로_로그인에_성공해야_한다() {
+        void login_success() {
             // given
-            String email = "test@example.com";
-            String rawPassword = "!TestPassword123";
-            String encodedPassword = "encodedPassword";
-            String fakeAccessToken = "fake.access.token";
-            String fakeRefreshToken = "fake.refresh.token";
-
-            User foundUser = mock(User.class);
-            when(foundUser.getId()).thenReturn(1L);
-            when(foundUser.getEmail()).thenReturn(email);
-            when(foundUser.getPassword()).thenReturn(encodedPassword);
-
-            when(userRepository.findByEmail(email)).thenReturn(Optional.of(foundUser));
-            when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
-            when(jwtTokenProvider.generateAccessToken(foundUser)).thenReturn(fakeAccessToken);
-            when(jwtTokenProvider.generateRefreshToken(foundUser)).thenReturn(fakeRefreshToken);
+            User user = User.builder().password("encodedPassword").build();
+            given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+            given(passwordEncoder.matches(password, "encodedPassword")).willReturn(true);
+            given(jwtTokenProvider.generateAccessToken(user)).willReturn("access-token");
+            given(jwtTokenProvider.generateRefreshToken(user)).willReturn("refresh-token");
 
             // when
-            TokenResponse tokenResponse = userService.login(email, rawPassword);
+            TokenResponse tokenResponse = userService.login(email, password);
 
             // then
-            assertThat(tokenResponse.accessToken()).isEqualTo(fakeAccessToken);
-            assertThat(tokenResponse.refreshToken()).isEqualTo(fakeRefreshToken);
-            verify(foundUser).updateRefreshToken(fakeRefreshToken);
+            assertThat(tokenResponse.accessToken()).isEqualTo("access-token");
+            assertThat(tokenResponse.refreshToken()).isEqualTo("refresh-token");
+            assertThat(tokenResponse.tokenType()).isEqualTo("Bearer");
+            assertThat(user.getRefreshToken()).isEqualTo("refresh-token");
         }
 
         @Test
         @DisplayName("실패 - 존재하지 않는 사용자")
-        void 존재하지_않는_사용자로는_로그인할_수_없다() {
+        void login_fail_userNotFound() {
             // given
-            String email = "notfound@example.com";
-            when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+            given(userRepository.findByEmail(email)).willReturn(Optional.empty());
 
-            // when & then
-            assertThatThrownBy(() -> userService.login(email, "password"))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> userService.login(email, password));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
         }
 
         @Test
-        @DisplayName("실패 - 잘못된 비밀번호")
-        void 잘못된_비밀번호로는_로그인할_수_없다() {
+        @DisplayName("실패 - 비밀번호 불일치")
+        void login_fail_passwordMismatch() {
             // given
-            String email = "test@example.com";
-            String wrongPassword = "wrongPassword";
-            String encodedPassword = "encodedPassword";
-            User foundUser = User.builder().id(1L).email(email).password(encodedPassword).build();
+            User user = User.builder().password("encodedPassword").build();
+            given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+            given(passwordEncoder.matches(password, "encodedPassword")).willReturn(false);
 
-            when(userRepository.findByEmail(email)).thenReturn(Optional.of(foundUser));
-            when(passwordEncoder.matches(wrongPassword, encodedPassword)).thenReturn(false);
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> userService.login(email, password));
 
-            // when & then
-            assertThatThrownBy(() -> userService.login(email, wrongPassword))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
         }
     }
 
     @Nested
-    @DisplayName("사용자 정보 조회")
+    @DisplayName("액세스 토큰 갱신 기능")
+    class RefreshAccessTokenTest {
+
+        @Test
+        @DisplayName("성공")
+        void refresh_success() {
+            // given
+            String refreshToken = "valid-refresh-token";
+            User user = User.builder().id(userId).build();
+
+            // validateToken이 boolean을 반환한다고 가정하고, true를 반환하도록 설정
+            given(jwtTokenProvider.validateToken(refreshToken)).willReturn(true);
+            given(userRepository.findByRefreshToken(refreshToken)).willReturn(Optional.of(user));
+            given(jwtTokenProvider.generateAccessToken(user)).willReturn("new-access-token");
+
+            // when
+            String newAccessToken = userService.refreshAccessToken(refreshToken);
+
+            // then
+            assertThat(newAccessToken).isEqualTo("new-access-token");
+        }
+
+        @Test
+        @DisplayName("실패 - 유효하지 않은 리프레시 토큰")
+        void refresh_fail_invalidToken() {
+            // given
+            String refreshToken = "invalid-refresh-token";
+            // 토큰 자체는 유효하지만, 해당 토큰을 가진 유저가 없는 경우를 테스트
+            given(jwtTokenProvider.validateToken(refreshToken)).willReturn(true);
+            given(userRepository.findByRefreshToken(refreshToken)).willReturn(Optional.empty());
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> userService.refreshAccessToken(refreshToken));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TOKEN_INVALID);
+        }
+    }
+
+    @Nested
+    @DisplayName("로그아웃 기능")
+    class LogoutTest {
+        @Test
+        @DisplayName("성공")
+        void logout_success() {
+            // given
+            User user = User.builder().id(userId).refreshToken("some-refresh-token").build();
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+            // when
+            userService.logout(userId);
+
+            // then
+            assertThat(user.getRefreshToken()).isNull();
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 사용자")
+        void logout_fail_userNotFound() {
+            // given
+            given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> userService.logout(userId));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND);
+        }
+    }
+
+    @Nested
+    @DisplayName("사용자 ID로 조회 기능")
     class GetUserByIdTest {
 
         @Test
         @DisplayName("성공")
-        void ID로_사용자_정보를_조회한다() {
+        void getUser_success() {
             // given
-            Long userId = 1L;
-            User fakeUser = User.builder().id(userId).email("test@test.com").username("tester").build();
-            when(userRepository.findById(userId)).thenReturn(Optional.of(fakeUser));
+            User expectedUser = User.builder().id(userId).email(email).build();
+            given(userRepository.findById(userId)).willReturn(Optional.of(expectedUser));
 
             // when
-            User foundUser = userService.getUserById(userId);
+            User actualUser = userService.getUserById(userId);
 
             // then
-            assertThat(foundUser.getId()).isEqualTo(userId);
-            assertThat(foundUser.getEmail()).isEqualTo("test@test.com");
+            assertThat(actualUser).isEqualTo(expectedUser);
+            assertThat(actualUser.getId()).isEqualTo(userId);
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 사용자")
+        void getUser_fail_userNotFound() {
+            // given
+            given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> userService.getUserById(userId));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND);
         }
     }
 }
