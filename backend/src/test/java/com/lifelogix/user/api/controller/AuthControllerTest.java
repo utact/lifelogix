@@ -1,35 +1,51 @@
 package com.lifelogix.user.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lifelogix.config.SecurityConfig;
+import com.lifelogix.config.jwt.JwtProperties;
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.user.api.dto.request.LoginRequest;
 import com.lifelogix.user.api.dto.request.RegisterRequest;
 import com.lifelogix.user.api.dto.response.TokenResponse;
-import com.lifelogix.user.domain.User;
-import com.lifelogix.user.domain.UserRepository;
+import com.lifelogix.user.application.UserService;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.Mockito.mock;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ActiveProfiles("test")
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
+@WebMvcTest(AuthController.class)
+@Import({SecurityConfig.class, AuthControllerTest.TestConfig.class})
+@DisplayName("AuthController 통합 테스트")
 class AuthControllerTest {
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public JwtProperties jwtProperties() {
+            JwtProperties mockProperties = mock(JwtProperties.class);
+            given(mockProperties.getSecret()).willReturn("bGlmZWxvZ2l4LWp3dC1zZWNyZXQta2V5LWZvci10ZXN0LWVudmlyb25tZW50Cg==");
+            return mockProperties;
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -37,79 +53,138 @@ class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private UserRepository userRepository;
+    @MockBean
+    private UserService userService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Test
+    @Nested
     @DisplayName("회원가입 API")
-    void 회원가입에_성공한다() throws Exception {
-        // given
-        var request = new RegisterRequest("register@test.com", "!Password123", "register");
+    class RegisterAPITest {
+        @Test
+        @DisplayName("성공")
+        void register_api_success() throws Exception {
+            // given
+            RegisterRequest request = new RegisterRequest("test@example.com", "password123!", "tester");
+            willDoNothing().given(userService).register(request.email(), request.password(), request.username());
 
-        // when & then
-        mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
+            // when & then
+            mockMvc.perform(post("/api/v1/auth/register")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.message").value("회원가입이 성공적으로 완료되었습니다."));
+        }
+
+        @Test
+        @DisplayName("실패 - 유효하지 않은 비밀번호")
+        void register_api_fail_invalidPassword() throws Exception {
+            // given
+            RegisterRequest request = new RegisterRequest("test@example.com", "password123", "tester");
+
+            // when & then
+            mockMvc.perform(post("/api/v1/auth/register")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("비밀번호는 영문, 숫자, 특수문자를 모두 포함해야 합니다."));
+        }
     }
 
-    @Test
+    @Nested
     @DisplayName("로그인 API")
-    void 로그인에_성공하고_토큰을_발급받는다() throws Exception {
-        // given
-        userRepository.save(User.builder()
-                .email("login@test.com")
-                .password(passwordEncoder.encode("!Password123"))
-                .username("loginuser")
-                .build());
+    class LoginAPITest {
+        @Test
+        @DisplayName("성공")
+        void login_api_success() throws Exception {
+            // given
+            LoginRequest request = new LoginRequest("test@example.com", "password123!");
+            TokenResponse tokenResponse = TokenResponse.of("access-token", "refresh-token");
+            given(userService.login(request.email(), request.password())).willReturn(tokenResponse);
 
-        var request = new LoginRequest("login@test.com", "!Password123");
+            // when & then
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.accessToken").value("access-token"))
+                    .andExpect(jsonPath("$.refreshToken").value("refresh-token"))
+                    .andExpect(jsonPath("$.tokenType").value("Bearer"));
+        }
 
-        // when & then
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").exists());
+        @Test
+        @DisplayName("실패 - 잘못된 인증 정보")
+        void login_api_fail_authenticationFailed() throws Exception {
+            // given
+            LoginRequest request = new LoginRequest("test@example.com", "wrong-password");
+            given(userService.login(request.email(), request.password()))
+                    .willThrow(new BusinessException(ErrorCode.AUTHENTICATION_FAILED));
+
+            // when & then
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized()); // 401 Unauthorized
+        }
     }
 
-    @Test
-    @DisplayName("토큰 재발급 API")
-    void 유효한_리프레시_토큰으로_액세스_토큰을_재발급받는다() throws Exception {
-        // given: 먼저 로그인을 해서 유효한 리프레시 토큰을 DB에 저장하고 얻어온다.
-        User user = User.builder()
-                .email("refresh@test.com")
-                .password(passwordEncoder.encode("!Password123"))
-                .username("refreshuser")
-                .build();
-        userRepository.save(user);
+    @Nested
+    @DisplayName("로그아웃 API")
+    class LogoutAPITest {
+        @Test
+        @WithMockUser(username = "1")
+        @DisplayName("성공")
+        void logout_api_success() throws Exception {
+            // given
+            willDoNothing().given(userService).logout(1L);
 
-        var loginRequest = new LoginRequest("refresh@test.com", "!Password123");
-        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
-                .andReturn();
+            // when & then
+            mockMvc.perform(post("/api/v1/auth/logout")
+                            .with(csrf()))
+                    .andExpect(status().isOk());
+        }
+    }
 
-        String responseBody = loginResult.getResponse().getContentAsString();
-        TokenResponse tokenResponse = objectMapper.readValue(responseBody, TokenResponse.class);
-        String refreshToken = tokenResponse.refreshToken();
+    @Nested
+    @DisplayName("토큰 갱신 API")
+    class RefreshTokenAPITest {
+        @Test
+        @DisplayName("성공")
+        void refresh_api_success() throws Exception {
+            // given
+            String refreshToken = "valid-refresh-token";
+            String newAccessToken = "new-access-token";
+            given(userService.refreshAccessToken(refreshToken)).willReturn(newAccessToken);
 
-        // when & then
-        MvcResult refreshResult = mockMvc.perform(post("/api/v1/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("refreshToken", refreshToken))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").value(refreshToken)) // 기존 리프레시 토큰이 그대로 반환됨
-                .andReturn();
+            Map<String, String> requestBody = Map.of("refreshToken", refreshToken);
 
-        // 새로 발급된 accessToken이 기존 accessToken과 다른지 검증
-        String newResponseBody = refreshResult.getResponse().getContentAsString();
-        TokenResponse newtokenResponse = objectMapper.readValue(newResponseBody, TokenResponse.class);
-        assertThat(newtokenResponse.accessToken()).isNotEqualTo(tokenResponse.accessToken());
+            // when & then
+            mockMvc.perform(post("/api/v1/auth/refresh")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.accessToken").value(newAccessToken));
+        }
+
+        @Test
+        @DisplayName("실패 - 유효하지 않은 토큰")
+        void refresh_api_fail_invalidToken() throws Exception {
+            // given
+            String refreshToken = "invalid-refresh-token";
+            given(userService.refreshAccessToken(refreshToken))
+                    .willThrow(new BusinessException(ErrorCode.TOKEN_INVALID));
+
+            Map<String, String> requestBody = Map.of("refreshToken", refreshToken);
+
+            // when & then
+            mockMvc.perform(post("/api/v1/auth/refresh")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestBody)))
+                    .andExpect(status().isUnauthorized());
+        }
     }
 }

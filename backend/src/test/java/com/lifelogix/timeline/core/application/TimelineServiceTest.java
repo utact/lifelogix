@@ -28,172 +28,215 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("TimelineService 단위 테스트")
 class TimelineServiceTest {
 
-    @Mock
-    private TimeBlockRepository timeBlockRepository;
-    @Mock
-    private ActivityRepository activityRepository;
     @InjectMocks
     private TimelineService timelineService;
 
-    private User fakeUser;
-    private Category fakeCategory;
+    @Mock
+    private TimeBlockRepository timeBlockRepository;
+
+    @Mock
+    private ActivityRepository activityRepository;
+
+    private User user;
+    private Category category;
+    private Category anotherCategory;
+    private Activity activity;
+    private Activity anotherActivity;
 
     @BeforeEach
     void setUp() {
-        fakeUser = User.builder()
-                .id(1L)
-                .email("test@test.com")
-                .password("p")
-                .username("tester")
-                .build();
-
-        fakeCategory = new Category(100L, "업무", "#123", fakeUser, null);
+        user = new User(1L, "test@example.com", "password", "tester", null);
+        category = new Category(100L, "운동", "#111111", user, null);
+        anotherCategory = new Category(200L, "공부", "#222222", user, null);
+        activity = new Activity(10L, "달리기", user, category);
+        anotherActivity = new Activity(11L, "코딩", user, anotherCategory);
     }
 
     @Nested
-    @DisplayName("타임블록 생성/수정")
-    class CreateOrUpdateTimeBlockTest {
+    @DisplayName("타임블록 생성 또는 수정")
+    class CreateOrUpdateTimeBlock {
 
         @Test
-        @DisplayName("성공 - 새로운 블록 생성")
-        void 타임블록을_성공적으로_생성한다() {
+        @DisplayName("성공 - 새로운 타임블록 생성")
+        void create_success() {
             // given
-            var request = new CreateTimeBlockRequest(LocalDate.now(), LocalTime.of(10, 0), TimeBlockType.ACTUAL, 10L);
-            Activity fakeActivity = new Activity(10L, "코딩", fakeUser, fakeCategory);
-
-            when(activityRepository.findById(10L)).thenReturn(Optional.of(fakeActivity));
-            when(timeBlockRepository.findUserTimeBlockForSlot(fakeUser.getId(), request.date(), request.startTime(), request.type())).thenReturn(Optional.empty());
-            when(timeBlockRepository.save(any(TimeBlock.class))).thenAnswer(invocation -> {
-                TimeBlock block = invocation.getArgument(0);
-                return new TimeBlock(1L, block.getDate(), block.getStartTime(), block.getType(), block.getActivity());
-            });
+            CreateTimeBlockRequest request = new CreateTimeBlockRequest(LocalDate.now(), LocalTime.of(9, 0), TimeBlockType.PLAN, activity.getId());
+            given(activityRepository.findById(request.activityId())).willReturn(Optional.of(activity));
+            given(timeBlockRepository.findUserTimeBlockForSlot(user.getId(), request.date(), request.startTime(), request.type())).willReturn(Optional.empty());
 
             // when
-            BlockDetailResponse response = timelineService.createOrUpdateTimeBlock(fakeUser.getId(), request);
+            timelineService.createOrUpdateTimeBlock(user.getId(), request);
 
             // then
-            assertThat(response.activityId()).isEqualTo(10L);
-            assertThat(response.activityName()).isEqualTo("코딩");
+            then(timeBlockRepository).should().save(any(TimeBlock.class));
         }
 
         @Test
-        @DisplayName("성공 - 기존 블록 활동 업데이트")
-        void 기존_타임블록의_활동을_성공적으로_수정한다() {
+        @DisplayName("성공 - 기존 타임블록 활동 업데이트")
+        void update_success() {
             // given
-            var request = new CreateTimeBlockRequest(LocalDate.now(), LocalTime.of(10, 0), TimeBlockType.ACTUAL, 20L);
-            Activity originalActivity = new Activity(10L, "원래 활동", fakeUser, fakeCategory);
-            Activity newActivity = new Activity(20L, "새로운 활동", fakeUser, fakeCategory);
-            TimeBlock existingBlock = new TimeBlock(1L, request.date(), request.startTime(), request.type(), originalActivity);
-
-            when(activityRepository.findById(20L)).thenReturn(Optional.of(newActivity));
-            when(timeBlockRepository.findUserTimeBlockForSlot(fakeUser.getId(), request.date(), request.startTime(), request.type())).thenReturn(Optional.of(existingBlock));
+            CreateTimeBlockRequest request = new CreateTimeBlockRequest(LocalDate.now(), LocalTime.of(9, 0), TimeBlockType.PLAN, activity.getId());
+            TimeBlock existingBlock = new TimeBlock(1L, request.date(), request.startTime(), request.type(), anotherActivity);
+            given(activityRepository.findById(request.activityId())).willReturn(Optional.of(activity));
+            given(timeBlockRepository.findUserTimeBlockForSlot(user.getId(), request.date(), request.startTime(), request.type())).willReturn(Optional.of(existingBlock));
 
             // when
-            BlockDetailResponse response = timelineService.createOrUpdateTimeBlock(fakeUser.getId(), request);
+            BlockDetailResponse response = timelineService.createOrUpdateTimeBlock(user.getId(), request);
 
             // then
-            assertThat(existingBlock.getActivity().getName()).isEqualTo("새로운 활동");
-            assertThat(response.activityName()).isEqualTo("새로운 활동");
+            assertThat(response.activityId()).isEqualTo(activity.getId());
+            then(timeBlockRepository).should(never()).save(any(TimeBlock.class));
         }
 
         @Test
-        @DisplayName("실패 - 권한 없는 활동")
-        void 다른_사람의_활동으로는_타임블록을_생성할_수_없다() {
+        @DisplayName("실패 - 다른 사용자의 활동으로 기록 시도")
+        void create_fail_permissionDenied() {
             // given
-            Long myUserId = 1L;
-            Long otherUserId = 2L;
-            var request = new CreateTimeBlockRequest(LocalDate.now(), LocalTime.of(10, 0), TimeBlockType.ACTUAL, 10L);
-            User fakeOtherUser = User.builder().id(otherUserId).build();
-            Activity fakeOtherUserActivity = new Activity(10L, "남의 활동", fakeOtherUser, null);
+            User otherUser = new User(2L, "other@test.com", "pw", "other", null);
+            Activity otherActivity = new Activity(12L, "독서", otherUser, category);
+            CreateTimeBlockRequest permissionRequest = new CreateTimeBlockRequest(LocalDate.now(), LocalTime.of(9, 0), TimeBlockType.PLAN, otherActivity.getId());
+            given(activityRepository.findById(permissionRequest.activityId())).willReturn(Optional.of(otherActivity));
 
-            when(activityRepository.findById(10L)).thenReturn(Optional.of(fakeOtherUserActivity));
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> timelineService.createOrUpdateTimeBlock(user.getId(), permissionRequest));
 
-            // when & then
-            assertThatThrownBy(() -> timelineService.createOrUpdateTimeBlock(myUserId, request))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(ErrorCode.PERMISSION_DENIED);
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED);
         }
     }
 
     @Nested
-    @DisplayName("타임라인 조회")
-    class GetTimelineTest {
+    @DisplayName("일일 타임라인 조회")
+    class GetDailyTimeline {
         @Test
         @DisplayName("성공")
-        void 특정_날짜의_타임라인을_성공적으로_조회한다() {
+        void get_success() {
             // given
-            LocalDate testDate = LocalDate.of(2025, 10, 7);
-            Activity codingActivity = new Activity(101L, "코딩", fakeUser, fakeCategory);
-            List<TimeBlock> timeBlocksFromDb = List.of(
-                    new TimeBlock(1L, testDate, LocalTime.of(10, 0), TimeBlockType.ACTUAL, codingActivity),
-                    new TimeBlock(2L, testDate, LocalTime.of(10, 0), TimeBlockType.PLAN, codingActivity)
-            );
-
-            when(timeBlockRepository.findByUserIdAndDate(fakeUser.getId(), testDate)).thenReturn(timeBlocksFromDb);
+            LocalDate date = LocalDate.now();
+            TimeBlock planBlock = new TimeBlock(1L, date, LocalTime.of(9, 0), TimeBlockType.PLAN, activity);
+            TimeBlock actualBlock = new TimeBlock(2L, date, LocalTime.of(9, 0), TimeBlockType.ACTUAL, anotherActivity);
+            given(timeBlockRepository.findByUserIdAndDate(user.getId(), date)).willReturn(List.of(planBlock, actualBlock));
 
             // when
-            TimelineResponse response = timelineService.getDailyTimeline(fakeUser.getId(), testDate);
+            TimelineResponse response = timelineService.getDailyTimeline(user.getId(), date);
 
             // then
-            assertThat(response.date()).isEqualTo(testDate);
             assertThat(response.timeBlocks()).hasSize(1);
-            assertThat(response.timeBlocks().get(0).plan()).isNotNull();
-            assertThat(response.timeBlocks().get(0).actual()).isNotNull();
+            assertThat(response.timeBlocks().get(0).startTime()).isEqualTo(LocalTime.of(9, 0));
+            assertThat(response.timeBlocks().get(0).plan().activityId()).isEqualTo(activity.getId());
+            assertThat(response.timeBlocks().get(0).actual().activityId()).isEqualTo(anotherActivity.getId());
         }
     }
 
     @Nested
-    @DisplayName("타임블록 수정")
-    class UpdateTimeBlockTest {
+    @DisplayName("타임블록 활동 변경")
+    class UpdateTimeBlock {
         @Test
         @DisplayName("성공")
-        void 자신의_타임블록을_성공적으로_수정한다() {
+        void update_success() {
             // given
             Long timeBlockId = 1L;
-            Activity originalActivity = new Activity(10L, "원래 활동", fakeUser, fakeCategory);
-            Activity newActivity = new Activity(20L, "새로운 활동", fakeUser, fakeCategory);
-            var request = new UpdateTimeBlockRequest(newActivity.getId());
-            TimeBlock myTimeBlock = new TimeBlock(timeBlockId, LocalDate.now(), LocalTime.now(), TimeBlockType.ACTUAL, originalActivity);
+            UpdateTimeBlockRequest request = new UpdateTimeBlockRequest(anotherActivity.getId());
+            TimeBlock timeBlock = new TimeBlock(timeBlockId, LocalDate.now(), LocalTime.now(), TimeBlockType.PLAN, activity);
 
-            when(timeBlockRepository.findById(timeBlockId)).thenReturn(Optional.of(myTimeBlock));
-            when(activityRepository.findById(newActivity.getId())).thenReturn(Optional.of(newActivity));
+            given(timeBlockRepository.findById(timeBlockId)).willReturn(Optional.of(timeBlock));
+            given(activityRepository.findById(request.activityId())).willReturn(Optional.of(anotherActivity));
 
             // when
-            BlockDetailResponse response = timelineService.updateTimeBlock(fakeUser.getId(), timeBlockId, request);
+            BlockDetailResponse response = timelineService.updateTimeBlock(user.getId(), timeBlockId, request);
 
             // then
-            assertThat(myTimeBlock.getActivity().getName()).isEqualTo("새로운 활동");
-            assertThat(response.activityName()).isEqualTo("새로운 활동");
+            assertThat(response.activityId()).isEqualTo(anotherActivity.getId());
+            assertThat(timeBlock.getActivity()).isEqualTo(anotherActivity);
+        }
+
+        @Test
+        @DisplayName("실패 - 다른 사용자의 타임블록")
+        void update_fail_permissionDenied_onTimeBlock() {
+            // given
+            Long timeBlockId = 1L;
+            User otherUser = new User(2L, "other", "p", "o", null);
+            Activity otherActivity = new Activity(12L, "독서", otherUser, category);
+            TimeBlock otherUsersBlock = new TimeBlock(timeBlockId, LocalDate.now(), LocalTime.now(), TimeBlockType.PLAN, otherActivity);
+            UpdateTimeBlockRequest request = new UpdateTimeBlockRequest(activity.getId());
+
+            given(timeBlockRepository.findById(timeBlockId)).willReturn(Optional.of(otherUsersBlock));
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> timelineService.updateTimeBlock(user.getId(), timeBlockId, request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED);
+        }
+
+        @Test
+        @DisplayName("실패 - 다른 사용자의 활동으로 변경 시도")
+        void update_fail_permissionDenied_onActivity() {
+            // given
+            Long timeBlockId = 1L;
+            User otherUser = new User(2L, "other", "p", "o", null);
+            Activity otherActivity = new Activity(12L, "독서", otherUser, category);
+            TimeBlock timeBlock = new TimeBlock(timeBlockId, LocalDate.now(), LocalTime.now(), TimeBlockType.PLAN, activity);
+            UpdateTimeBlockRequest request = new UpdateTimeBlockRequest(otherActivity.getId());
+
+            given(timeBlockRepository.findById(timeBlockId)).willReturn(Optional.of(timeBlock));
+            given(activityRepository.findById(request.activityId())).willReturn(Optional.of(otherActivity));
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> timelineService.updateTimeBlock(user.getId(), timeBlockId, request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED);
         }
     }
+
 
     @Nested
     @DisplayName("타임블록 삭제")
-    class DeleteTimeBlockTest {
+    class DeleteTimeBlock {
         @Test
         @DisplayName("성공")
-        void 자신의_타임블록을_성공적으로_삭제한다() {
+        void delete_success() {
             // given
-            Long timeBlockId = 2L;
-            Activity myActivity = new Activity(10L, "내 활동", fakeUser, fakeCategory);
-            TimeBlock myTimeBlock = new TimeBlock(timeBlockId, LocalDate.now(), LocalTime.now(), TimeBlockType.ACTUAL, myActivity);
-
-            when(timeBlockRepository.findById(timeBlockId)).thenReturn(Optional.of(myTimeBlock));
+            Long timeBlockId = 1L;
+            TimeBlock timeBlock = new TimeBlock(timeBlockId, LocalDate.now(), LocalTime.now(), TimeBlockType.PLAN, activity);
+            given(timeBlockRepository.findById(timeBlockId)).willReturn(Optional.of(timeBlock));
+            willDoNothing().given(timeBlockRepository).delete(timeBlock);
 
             // when
-            timelineService.deleteTimeBlock(fakeUser.getId(), timeBlockId);
+            timelineService.deleteTimeBlock(user.getId(), timeBlockId);
 
             // then
-            verify(timeBlockRepository).delete(myTimeBlock);
+            then(timeBlockRepository).should().delete(timeBlock);
+        }
+
+        @Test
+        @DisplayName("실패 - 다른 사용자의 타임블록")
+        void delete_fail_permissionDenied() {
+            // given
+            Long timeBlockId = 1L;
+            User otherUser = new User(2L, "other@test.com", "pw", "other", null);
+            Activity otherActivity = new Activity(12L, "독서", otherUser, category);
+            TimeBlock timeBlock = new TimeBlock(timeBlockId, LocalDate.now(), LocalTime.now(), TimeBlockType.PLAN, otherActivity);
+            given(timeBlockRepository.findById(timeBlockId)).willReturn(Optional.of(timeBlock));
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> timelineService.deleteTimeBlock(user.getId(), timeBlockId));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED);
         }
     }
 }

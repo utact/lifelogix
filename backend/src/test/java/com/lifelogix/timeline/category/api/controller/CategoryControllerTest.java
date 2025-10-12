@@ -1,147 +1,222 @@
 package com.lifelogix.timeline.category.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lifelogix.config.jwt.JwtTokenProvider;
+import com.lifelogix.config.SecurityConfig;
+import com.lifelogix.config.jwt.JwtProperties;
+import com.lifelogix.exception.BusinessException;
+import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.timeline.category.api.dto.request.CreateCategoryRequest;
 import com.lifelogix.timeline.category.api.dto.request.UpdateCategoryRequest;
-import com.lifelogix.timeline.category.domain.Category;
-import com.lifelogix.timeline.category.domain.CategoryRepository;
-import com.lifelogix.user.domain.User;
-import com.lifelogix.user.domain.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.lifelogix.timeline.category.api.dto.response.CategoryResponse;
+import com.lifelogix.timeline.category.application.CategoryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.mock;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ActiveProfiles("test")
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
+@WebMvcTest(CategoryController.class)
+@Import({SecurityConfig.class, CategoryControllerTest.TestConfig.class})
+@DisplayName("CategoryController 통합 테스트")
 class CategoryControllerTest {
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public JwtProperties jwtProperties() {
+            JwtProperties mockProperties = mock(JwtProperties.class);
+            given(mockProperties.getSecret()).willReturn("bGlmZWxvZ2l4LWp3dC1zZWNyZXQta2V5LWZvci10ZXN0LWVudmlyb25tZW50Cg==");
+            return mockProperties;
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
+
     @Autowired
     private ObjectMapper objectMapper;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private CategoryRepository categoryRepository;
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
 
-    private User testUser;
-    private String accessToken;
+    @MockBean
+    private CategoryService categoryService;
 
-    @BeforeEach
-    void setUp() {
-        testUser = User.builder().email("test@user.com").password("p").username("tester").build();
-        userRepository.save(testUser);
-        accessToken = jwtTokenProvider.generateAccessToken(testUser);
-    }
+    private final Long userId = 1L;
 
     @Nested
-    @DisplayName("GET /api/v1/categories")
-    class GetCategories {
-        @Test
-        @DisplayName("성공")
-        void 사용자가_조회_가능한_모든_카테고리를_가져온다() throws Exception {
-            // given
-            categoryRepository.save(new Category("운동", "#2ECC71", null, null));
-            categoryRepository.save(new Category("개인 프로젝트", "#E74C3C", testUser, null));
-            User otherUser = User.builder().email("other@user.com").password("p").username("other").build();
-            userRepository.save(otherUser);
-            categoryRepository.save(new Category("다른 유저 카테고리", "#FFFFFF", otherUser, null));
-
-            // when & then
-            mockMvc.perform(get("/api/v1/categories")
-                            .header("Authorization", "Bearer " + accessToken))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.length()").value(2))
-                    .andExpect(jsonPath("$[?(@.name == '운동')]").exists())
-                    .andExpect(jsonPath("$[?(@.name == '개인 프로젝트')]").exists());
-        }
-    }
-
-    @Nested
-    @DisplayName("POST /api/v1/categories")
+    @DisplayName("POST /api/v1/categories - 카테고리 생성")
     class CreateCategory {
+
         @Test
-        @DisplayName("성공")
-        void 사용자_정의_카테고리_생성에_성공한다() throws Exception {
+        @WithMockUser(username = "1")
+        @DisplayName("성공 - 201 Created 반환")
+        void create_success() throws Exception {
             // given
-            Category parentCategory = categoryRepository.save(new Category("학습", "#9B59B6", null, null));
-            var request = new CreateCategoryRequest("AWS 자격증 공부", "#F39C12", parentCategory.getId());
+            CreateCategoryRequest request = new CreateCategoryRequest("헬스", "#FFFFFF", 10L);
+            CategoryResponse response = new CategoryResponse(1L, "헬스", "#FFFFFF", true, 10L);
+            // Argument Matcher를 사용하여 Mock 설정
+            given(categoryService.createCustomCategory(eq(userId), any(CreateCategoryRequest.class))).willReturn(response);
 
             // when & then
             mockMvc.perform(post("/api/v1/categories")
-                            .header("Authorization", "Bearer " + accessToken)
+                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.name").value("AWS 자격증 공부"));
+                    .andExpect(header().string("Location", "/api/v1/categories/" + response.id()))
+                    .andExpect(jsonPath("$.name").value("헬스"));
+        }
+
+        @Test
+        @DisplayName("실패 - 인증되지 않은 사용자")
+        void create_fail_unauthorized() throws Exception {
+            // given
+            CreateCategoryRequest request = new CreateCategoryRequest("헬스", "#FFFFFF", 10L);
+
+            // when & then
+            mockMvc.perform(post("/api/v1/categories")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @WithMockUser(username = "1")
+        @DisplayName("실패 - 이름 중복으로 409 Conflict 반환")
+        void create_fail_duplicateName() throws Exception {
+            // given
+            CreateCategoryRequest request = new CreateCategoryRequest("헬스", "#FFFFFF", 10L);
+            given(categoryService.createCustomCategory(eq(userId), any(CreateCategoryRequest.class)))
+                    .willThrow(new BusinessException(ErrorCode.CATEGORY_NAME_DUPLICATE));
+
+            // when & then
+            mockMvc.perform(post("/api/v1/categories")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isConflict());
         }
     }
 
     @Nested
-    @DisplayName("PUT /api/v1/categories/{categoryId}")
-    class UpdateCategory {
+    @DisplayName("GET /api/v1/categories - 모든 카테고리 조회")
+    class GetAllCategories {
         @Test
-        @DisplayName("성공")
-        void 자신의_카테고리_수정에_성공한다() throws Exception {
+        @WithMockUser(username = "1")
+        @DisplayName("성공 - 200 OK와 카테고리 목록 반환")
+        void getAll_success() throws Exception {
             // given
-            Category myCategory = categoryRepository.save(new Category("원본 이름", "#111111", testUser, null));
-            var request = new UpdateCategoryRequest("수정된 이름", "#222222");
+            List<CategoryResponse> responses = List.of(
+                    new CategoryResponse(10L, "운동", "#000000", false, null),
+                    new CategoryResponse(1L, "헬스", "#FFFFFF", true, 10L)
+            );
+            given(categoryService.findAllCategoriesForUser(userId)).willReturn(responses);
 
             // when & then
-            mockMvc.perform(put("/api/v1/categories/" + myCategory.getId())
-                            .header("Authorization", "Bearer " + accessToken)
+            mockMvc.perform(get("/api/v1/categories"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].name").value("운동"))
+                    .andExpect(jsonPath("$[1].name").value("헬스"));
+        }
+
+        @Test
+        @DisplayName("실패 - 인증되지 않은 사용자")
+        void getAll_fail_unauthorized() throws Exception {
+            // when & then
+            mockMvc.perform(get("/api/v1/categories"))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/v1/categories/{categoryId} - 카테고리 수정")
+    class UpdateCategory {
+        private final Long categoryId = 1L;
+
+        @Test
+        @WithMockUser(username = "1")
+        @DisplayName("성공 - 200 OK와 수정된 카테고리 반환")
+        void update_success() throws Exception {
+            // given
+            UpdateCategoryRequest request = new UpdateCategoryRequest("필라테스", "#BBBBBB");
+            CategoryResponse response = new CategoryResponse(categoryId, "필라테스", "#BBBBBB", true, 10L);
+            given(categoryService.updateCustomCategory(eq(userId), eq(categoryId), any(UpdateCategoryRequest.class))).willReturn(response);
+
+            // when & then
+            mockMvc.perform(put("/api/v1/categories/{categoryId}", categoryId)
+                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.name").value("수정된 이름"))
-                    .andExpect(jsonPath("$.color").value("#222222"));
+                    .andExpect(jsonPath("$.name").value("필라테스"));
+        }
+
+        @Test
+        @WithMockUser(username = "1")
+        @DisplayName("실패 - 권한 없음으로 403 Forbidden 반환")
+        void update_fail_permissionDenied() throws Exception {
+            // given
+            UpdateCategoryRequest request = new UpdateCategoryRequest("필라테스", "#BBBBBB");
+            given(categoryService.updateCustomCategory(eq(userId), eq(categoryId), any(UpdateCategoryRequest.class)))
+                    .willThrow(new BusinessException(ErrorCode.PERMISSION_DENIED));
+
+            // when & then
+            mockMvc.perform(put("/api/v1/categories/{categoryId}", categoryId)
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden());
         }
     }
 
     @Nested
-    @DisplayName("DELETE /api/v1/categories/{categoryId}")
+    @DisplayName("DELETE /api/v1/categories/{categoryId} - 카테고리 삭제")
     class DeleteCategory {
+        private final Long categoryId = 1L;
+
         @Test
-        @DisplayName("성공")
-        void 자신의_카테고리_삭제에_성공한다() throws Exception {
+        @WithMockUser(username = "1")
+        @DisplayName("성공 - 204 No Content 반환")
+        void delete_success() throws Exception {
             // given
-            Category myCategory = categoryRepository.save(new Category("삭제될 카테고리", "#111111", testUser, null));
+            willDoNothing().given(categoryService).deleteCustomCategory(userId, categoryId);
 
             // when & then
-            mockMvc.perform(delete("/api/v1/categories/" + myCategory.getId())
-                            .header("Authorization", "Bearer " + accessToken))
+            mockMvc.perform(delete("/api/v1/categories/{categoryId}", categoryId)
+                            .with(csrf()))
                     .andExpect(status().isNoContent());
         }
 
         @Test
-        @DisplayName("실패 - 권한 없음")
-        void 다른_사람의_카테고리는_삭제할_수_없다() throws Exception {
+        @WithMockUser(username = "1")
+        @DisplayName("실패 - 사용 중인 카테고리로 400 Bad Request 반환")
+        void delete_fail_categoryInUse() throws Exception {
             // given
-            User otherUser = User.builder().email("other@user.com").password("p").username("other").build();
-            userRepository.save(otherUser);
-            Category otherCategory = categoryRepository.save(new Category("남의 카테고리", "#FFFFFF", otherUser, null));
+            doThrow(new BusinessException(ErrorCode.CATEGORY_IN_USE))
+                    .when(categoryService).deleteCustomCategory(userId, categoryId);
 
             // when & then
-            mockMvc.perform(delete("/api/v1/categories/" + otherCategory.getId())
-                            .header("Authorization", "Bearer " + accessToken)) // 내 토큰으로 남의 카테고리 삭제 시도
-                    .andExpect(status().isForbidden());
+            mockMvc.perform(delete("/api/v1/categories/{categoryId}", categoryId)
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest());
         }
     }
 }

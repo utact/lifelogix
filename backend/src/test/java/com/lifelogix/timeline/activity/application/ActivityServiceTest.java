@@ -13,6 +13,7 @@ import com.lifelogix.timeline.category.domain.CategoryRepository;
 import com.lifelogix.timeline.core.domain.TimeBlockRepository;
 import com.lifelogix.user.domain.User;
 import com.lifelogix.user.domain.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,13 +26,16 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ActivityService 단위 테스트")
 class ActivityServiceTest {
+
+    @InjectMocks
+    private ActivityService activityService;
 
     @Mock
     private ActivityRepository activityRepository;
@@ -41,153 +45,185 @@ class ActivityServiceTest {
     private CategoryRepository categoryRepository;
     @Mock
     private TimeBlockRepository timeBlockRepository;
-    @InjectMocks
-    private ActivityService activityService;
+
+    private User user;
+    private Category category;
+
+    @BeforeEach
+    void setUp() {
+        user = new User(1L, "test@example.com", "password", "tester", null);
+        category = new Category(10L, "운동", "#123456", user, null);
+    }
 
     @Nested
     @DisplayName("활동 생성")
-    class CreateActivityTest {
-
+    class CreateActivity {
         @Test
         @DisplayName("성공")
-        void 활동을_성공적으로_생성한다() {
+        void create_success() {
             // given
-            Long userId = 1L;
-            Long categoryId = 10L;
-            var request = new CreateActivityRequest("새로운 활동", categoryId);
-            User fakeUser = User.builder().id(userId).build();
-            Category fakeCategory = new Category(categoryId, "업무", "#123", fakeUser, null);
+            CreateActivityRequest request = new CreateActivityRequest("달리기", category.getId());
+            Activity newActivity = new Activity(request.name(), user, category);
 
-            when(userRepository.findById(userId)).thenReturn(Optional.of(fakeUser));
-            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(fakeCategory));
-            when(activityRepository.save(any(Activity.class))).thenAnswer(invocation -> {
-                Activity activity = invocation.getArgument(0);
-                return new Activity(100L, activity.getName(), activity.getUser(), activity.getCategory());
-            });
+            given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
+            given(categoryRepository.findById(request.categoryId())).willReturn(Optional.of(category));
+            given(activityRepository.existsByCategoryAndName(category, request.name())).willReturn(false);
+            given(activityRepository.save(any(Activity.class))).willReturn(newActivity);
 
             // when
-            ActivityResponse response = activityService.createActivity(userId, request);
+            ActivityResponse response = activityService.createActivity(user.getId(), request);
 
             // then
-            assertThat(response.id()).isEqualTo(100L);
-            assertThat(response.name()).isEqualTo("새로운 활동");
+            assertThat(response.name()).isEqualTo(request.name());
+            then(activityRepository).should().save(any(Activity.class));
         }
 
         @Test
-        @DisplayName("실패 - 권한 없는 카테고리")
-        void 다른_사람의_카테고리로는_활동을_생성할_수_없다() {
+        @DisplayName("실패 - 존재하지 않는 카테고리")
+        void create_fail_categoryNotFound() {
             // given
-            Long myUserId = 1L;
-            Long otherUserId = 2L;
-            Long otherUserCategoryId = 10L;
-            var request = new CreateActivityRequest("새로운 활동", otherUserCategoryId);
-            User fakeMe = User.builder().id(myUserId).build();
-            User fakeOtherUser = User.builder().id(otherUserId).build();
-            Category fakeOtherUsersCategory = new Category(otherUserCategoryId, "남의 카테고리", "#123", fakeOtherUser, null);
+            CreateActivityRequest request = new CreateActivityRequest("달리기", 999L);
+            given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
+            given(categoryRepository.findById(request.categoryId())).willReturn(Optional.empty());
 
-            when(userRepository.findById(myUserId)).thenReturn(Optional.of(fakeMe));
-            when(categoryRepository.findById(otherUserCategoryId)).thenReturn(Optional.of(fakeOtherUsersCategory));
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> activityService.createActivity(user.getId(), request));
 
-            // when & then
-            assertThatThrownBy(() -> activityService.createActivity(myUserId, request))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(ErrorCode.PERMISSION_DENIED);
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CATEGORY_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("실패 - 다른 사용자의 카테고리에 생성 시도")
+        void create_fail_permissionDenied() {
+            // given
+            User otherUser = new User(2L, "other@test.com", "pw", "other", null);
+            Category otherUserCategory = new Category(11L, "공부", "#FFFFFF", otherUser, null);
+            CreateActivityRequest request = new CreateActivityRequest("달리기", otherUserCategory.getId());
+
+            given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
+            given(categoryRepository.findById(request.categoryId())).willReturn(Optional.of(otherUserCategory));
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> activityService.createActivity(user.getId(), request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED);
+        }
+
+        @Test
+        @DisplayName("실패 - 활동 이름 중복")
+        void create_fail_duplicateName() {
+            // given
+            CreateActivityRequest request = new CreateActivityRequest("달리기", category.getId());
+            given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
+            given(categoryRepository.findById(request.categoryId())).willReturn(Optional.of(category));
+            given(activityRepository.existsByCategoryAndName(category, request.name())).willReturn(true);
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> activityService.createActivity(user.getId(), request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ACTIVITY_NAME_DUPLICATE);
         }
     }
 
     @Nested
-    @DisplayName("활동 조회")
-    class FindActivityTest {
+    @DisplayName("카테고리별 활동 그룹 조회")
+    class FindAllActivities {
         @Test
-        @DisplayName("성공 - 카테고리별 그룹화")
-        void 사용자의_모든_활동을_카테고리별로_그룹화하여_조회한다() {
+        @DisplayName("성공")
+        void findAll_success() {
             // given
-            Long userId = 1L;
-            User fakeUser = User.builder().id(userId).build();
-            Category category1 = new Category(10L, "업무", "#123", fakeUser, null);
-            Category category2 = new Category(11L, "운동", "#456", fakeUser, null);
-            Activity activity1 = new Activity(101L, "회의", fakeUser, category1);
-            Activity activity2 = new Activity(102L, "코딩", fakeUser, category1);
-            Activity activity3 = new Activity(103L, "조깅", fakeUser, category2);
-
-            when(activityRepository.findByUserIdOrderByCategory(userId)).thenReturn(List.of(activity1, activity2, activity3));
+            Category studyCategory = new Category(11L, "공부", "#FFFFFF", user, null);
+            Activity activity1 = new Activity(1L, "달리기", user, category);
+            Activity activity2 = new Activity(2L, "수영", user, category);
+            Activity activity3 = new Activity(3L, "코딩", user, studyCategory);
+            given(activityRepository.findByUserIdOrderByCategory(user.getId())).willReturn(List.of(activity1, activity2, activity3));
 
             // when
-            List<ActivitiesByCategoryResponse> responses = activityService.findAllActivitiesGroupedByCategory(userId);
+            List<ActivitiesByCategoryResponse> responses = activityService.findAllActivitiesGroupedByCategory(user.getId());
 
             // then
             assertThat(responses).hasSize(2);
-            // 순서가 보장되지 않으므로, stream을 사용하여 내용을 검증
-            assertThat(responses.stream().map(ActivitiesByCategoryResponse::categoryName)).contains("업무", "운동");
+            assertThat(responses.get(0).activities()).hasSize(2); // 운동 카테고리
+            assertThat(responses.get(1).activities()).hasSize(1); // 공부 카테고리
         }
     }
 
     @Nested
     @DisplayName("활동 수정")
-    class UpdateActivityTest {
+    class UpdateActivity {
         @Test
         @DisplayName("성공")
-        void 자신의_활동_이름을_성공적으로_수정한다() {
+        void update_success() {
             // given
-            Long userId = 1L;
-            Long activityId = 2L;
-            var request = new UpdateActivityRequest("수정된 활동 이름");
-            User fakeUser = User.builder().id(userId).build();
-            Category fakeCategory = new Category(10L, "업무", "#123", fakeUser, null);
-            Activity myActivity = new Activity(activityId, "원본 활동 이름", fakeUser, fakeCategory);
-
-            when(activityRepository.findById(activityId)).thenReturn(Optional.of(myActivity));
+            UpdateActivityRequest request = new UpdateActivityRequest("빠르게 달리기");
+            Activity activity = new Activity(1L, "달리기", user, category);
+            given(activityRepository.findById(activity.getId())).willReturn(Optional.of(activity));
+            given(activityRepository.existsByCategoryAndName(category, request.name())).willReturn(false);
 
             // when
-            ActivityResponse response = activityService.updateActivity(userId, activityId, request);
+            ActivityResponse response = activityService.updateActivity(user.getId(), activity.getId(), request);
 
             // then
-            assertThat(response.name()).isEqualTo("수정된 활동 이름");
+            assertThat(response.name()).isEqualTo("빠르게 달리기");
+        }
+
+        @Test
+        @DisplayName("실패 - 다른 사용자의 활동")
+        void update_fail_permissionDenied() {
+            // given
+            UpdateActivityRequest request = new UpdateActivityRequest("빠르게 달리기");
+            Activity activity = new Activity(1L, "달리기", user, category);
+            Long otherUserId = 99L;
+            given(activityRepository.findById(activity.getId())).willReturn(Optional.of(activity));
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> activityService.updateActivity(otherUserId, activity.getId(), request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED);
         }
     }
 
     @Nested
     @DisplayName("활동 삭제")
-    class DeleteActivityTest {
+    class DeleteActivity {
         @Test
         @DisplayName("성공")
-        void 자신의_활동을_성공적으로_삭제한다() {
+        void delete_success() {
             // given
-            Long userId = 1L;
-            Long activityId = 2L;
-            User fakeUser = User.builder().id(userId).build();
-            Category fakeCategory = new Category(10L, "업무", "#123", fakeUser, null);
-            Activity myActivity = new Activity(activityId, "삭제될 활동", fakeUser, fakeCategory);
-
-            when(activityRepository.findById(activityId)).thenReturn(Optional.of(myActivity));
-            when(timeBlockRepository.existsByActivity(myActivity)).thenReturn(false);
+            Activity activity = new Activity(1L, "달리기", user, category);
+            given(activityRepository.findById(activity.getId())).willReturn(Optional.of(activity));
+            given(timeBlockRepository.existsByActivity(activity)).willReturn(false);
+            willDoNothing().given(activityRepository).delete(activity);
 
             // when
-            activityService.deleteActivity(userId, activityId);
+            activityService.deleteActivity(user.getId(), activity.getId());
 
             // then
-            verify(activityRepository).delete(myActivity);
+            then(activityRepository).should().delete(activity);
         }
 
         @Test
-        @DisplayName("실패 - 타임블록 존재")
-        void 타임블록에_사용중인_활동은_삭제할_수_없다() {
+        @DisplayName("실패 - 활동이 사용 중")
+        void delete_fail_activityInUse() {
             // given
-            Long userId = 1L;
-            Long activityId = 2L;
-            User fakeUser = User.builder().id(userId).build();
-            Category fakeCategory = new Category(10L, "업무", "#123", fakeUser, null);
-            Activity myActivity = new Activity(activityId, "삭제될 활동", fakeUser, fakeCategory);
+            Activity activity = new Activity(1L, "달리기", user, category);
+            given(activityRepository.findById(activity.getId())).willReturn(Optional.of(activity));
+            given(timeBlockRepository.existsByActivity(activity)).willReturn(true);
 
-            when(activityRepository.findById(activityId)).thenReturn(Optional.of(myActivity));
-            when(timeBlockRepository.existsByActivity(myActivity)).thenReturn(true);
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> activityService.deleteActivity(user.getId(), activity.getId()));
 
-            // when & then
-            assertThatThrownBy(() -> activityService.deleteActivity(userId, activityId))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(ErrorCode.ACTIVITY_IN_USE);
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ACTIVITY_IN_USE);
         }
     }
 }

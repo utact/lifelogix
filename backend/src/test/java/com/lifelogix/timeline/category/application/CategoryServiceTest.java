@@ -10,6 +10,7 @@ import com.lifelogix.timeline.category.domain.Category;
 import com.lifelogix.timeline.category.domain.CategoryRepository;
 import com.lifelogix.user.domain.User;
 import com.lifelogix.user.domain.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,196 +23,295 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("CategoryService 단위 테스트")
 class CategoryServiceTest {
 
-    @Mock
-    private CategoryRepository categoryRepository;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private ActivityRepository activityRepository;
     @InjectMocks
     private CategoryService categoryService;
 
+    @Mock
+    private CategoryRepository categoryRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private ActivityRepository activityRepository;
+
+    private User user;
+    private Category systemParentCategory;
+
+    @BeforeEach
+    void setUp() {
+        user = new User(1L, "test@example.com", "password", "tester", null);
+        systemParentCategory = new Category(10L, "운동", "#123456", null, null); // user가 null인 시스템 카테고리
+    }
+
+
     @Nested
-    @DisplayName("카테고리 생성")
-    class CreateCategoryTest {
+    @DisplayName("사용자 정의 카테고리 생성")
+    class CreateCustomCategory {
 
         @Test
         @DisplayName("성공")
-        void 사용자_정의_카테고리를_성공적으로_생성한다() {
+        void create_success() {
             // given
-            Long userId = 1L;
-            Long parentId = 10L;
-            var request = new CreateCategoryRequest("AWS 자격증 공부", "#F39C12", parentId);
-            User fakeUser = User.builder().id(userId).build();
-            Category fakeParentCategory = new Category(parentId, "학습", "#9B59B6", null, null);
+            CreateCategoryRequest request = new CreateCategoryRequest("헬스", "#FFFFFF", 10L);
+            Category newCategory = new Category(request.name(), request.color(), user, systemParentCategory);
 
-            when(userRepository.findById(userId)).thenReturn(Optional.of(fakeUser));
-            when(categoryRepository.findById(parentId)).thenReturn(Optional.of(fakeParentCategory));
-            when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> {
-                Category newCategory = invocation.getArgument(0);
-                return new Category(100L, newCategory.getName(), newCategory.getColor(), newCategory.getUser(), newCategory.getParent());
-            });
+            given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
+            given(categoryRepository.findById(request.parentId())).willReturn(Optional.of(systemParentCategory));
+            given(categoryRepository.existsByUserAndName(user, request.name())).willReturn(false);
+            given(categoryRepository.save(any(Category.class))).willReturn(newCategory);
 
             // when
-            CategoryResponse response = categoryService.createCustomCategory(userId, request);
+            CategoryResponse response = categoryService.createCustomCategory(user.getId(), request);
 
             // then
-            assertThat(response.id()).isEqualTo(100L);
-            assertThat(response.name()).isEqualTo("AWS 자격증 공부");
+            assertThat(response.name()).isEqualTo(request.name());
+            assertThat(response.color()).isEqualTo(request.color());
+            assertThat(response.isCustom()).isTrue();
+            then(categoryRepository).should().save(any(Category.class));
         }
 
         @Test
-        @DisplayName("실패 - 존재하지 않는 부모")
-        void 존재하지_않는_부모_카테고리로는_생성할_수_없다() {
+        @DisplayName("실패 - 존재하지 않는 사용자")
+        void create_fail_userNotFound() {
             // given
-            Long userId = 1L;
-            var request = new CreateCategoryRequest("실패", "#123", 999L);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder().id(userId).build()));
-            when(categoryRepository.findById(999L)).thenReturn(Optional.empty());
+            CreateCategoryRequest request = new CreateCategoryRequest("헬스", "#FFFFFF", 10L);
+            given(userRepository.findById(user.getId())).willReturn(Optional.empty());
 
-            // when & then
-            assertThatThrownBy(() -> categoryService.createCustomCategory(userId, request))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(ErrorCode.CATEGORY_NOT_FOUND);
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> categoryService.createCustomCategory(user.getId(), request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 부모 카테고리")
+        void create_fail_parentCategoryNotFound() {
+            // given
+            CreateCategoryRequest request = new CreateCategoryRequest("헬스", "#FFFFFF", 999L);
+            given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
+            given(categoryRepository.findById(request.parentId())).willReturn(Optional.empty());
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> categoryService.createCustomCategory(user.getId(), request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CATEGORY_NOT_FOUND);
         }
 
         @Test
         @DisplayName("실패 - 부모가 시스템 카테고리가 아님")
-        void 부모가_시스템_카테고리가_아니면_생성할_수_없다() {
+        void create_fail_parentIsNotSystemCategory() {
             // given
-            Long userId = 1L;
-            Long parentId = 10L;
-            var request = new CreateCategoryRequest("실패", "#123", parentId);
-            User fakeUser = User.builder().id(userId).build();
-            Category fakeParentCategory = new Category(parentId, "남의 커스텀", "#456", fakeUser, null);
+            CreateCategoryRequest request = new CreateCategoryRequest("헬스", "#FFFFFF", 11L);
+            Category customParentCategory = new Category(11L, "유산소", "#000000", user, systemParentCategory); // user가 있는 커스텀 카테고리
 
-            when(userRepository.findById(userId)).thenReturn(Optional.of(fakeUser));
-            when(categoryRepository.findById(parentId)).thenReturn(Optional.of(fakeParentCategory));
+            given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
+            given(categoryRepository.findById(request.parentId())).willReturn(Optional.of(customParentCategory));
 
-            // when & then
-            assertThatThrownBy(() -> categoryService.createCustomCategory(userId, request))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(ErrorCode.INVALID_PARENT_CATEGORY);
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> categoryService.createCustomCategory(user.getId(), request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_PARENT_CATEGORY);
+        }
+
+        @Test
+        @DisplayName("실패 - 카테고리 이름 중복")
+        void create_fail_duplicateName() {
+            // given
+            CreateCategoryRequest request = new CreateCategoryRequest("헬스", "#FFFFFF", 10L);
+            given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
+            given(categoryRepository.findById(request.parentId())).willReturn(Optional.of(systemParentCategory));
+            given(categoryRepository.existsByUserAndName(user, request.name())).willReturn(true);
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> categoryService.createCustomCategory(user.getId(), request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CATEGORY_NAME_DUPLICATE);
         }
     }
 
     @Nested
-    @DisplayName("카테고리 조회")
-    class FindCategoryTest {
-        @Test
-        @DisplayName("성공 - 시스템/사용자 카테고리 모두 조회")
-        void 사용자가_조회_가능한_모든_카테고리를_가져온다() {
-            // given
-            Long userId = 1L;
-            User fakeUser = User.builder().id(userId).build();
-            Category systemCategory = new Category(1L, "운동", "#2ECC71", null, null);
-            Category customCategory = new Category(2L, "개인 프로젝트", "#E74C3C", fakeUser, null);
+    @DisplayName("사용자별 모든 카테고리 조회")
+    class FindAllCategoriesForUser {
 
-            when(categoryRepository.findByUserIdOrUserIsNull(userId)).thenReturn(List.of(systemCategory, customCategory));
+        @Test
+        @DisplayName("성공 - 시스템 카테고리와 사용자 정의 카테고리를 함께 반환")
+        void findAll_success() {
+            // given
+            Category customCategory = new Category("헬스", "#FFFFFF", user, systemParentCategory);
+            List<Category> categories = List.of(systemParentCategory, customCategory);
+            given(categoryRepository.findByUserIdOrUserIsNull(user.getId())).willReturn(categories);
 
             // when
-            List<CategoryResponse> responses = categoryService.findAllCategoriesForUser(userId);
+            List<CategoryResponse> responses = categoryService.findAllCategoriesForUser(user.getId());
 
             // then
             assertThat(responses).hasSize(2);
-            assertThat(responses.stream().map(CategoryResponse::name)).contains("운동", "개인 프로젝트");
+            assertThat(responses.get(0).name()).isEqualTo("운동");
+            assertThat(responses.get(1).name()).isEqualTo("헬스");
         }
     }
 
     @Nested
-    @DisplayName("카테고리 수정")
-    class UpdateCategoryTest {
+    @DisplayName("사용자 정의 카테고리 수정")
+    class UpdateCustomCategory {
+
+        private Category customCategory;
+        private UpdateCategoryRequest request;
+
+        @BeforeEach
+        void setUp() {
+            customCategory = new Category(20L, "요가", "#AAAAAA", user, systemParentCategory);
+            request = new UpdateCategoryRequest("필라테스", "#BBBBBB");
+        }
+
         @Test
         @DisplayName("성공")
-        void 자신의_커스텀_카테고리_정보를_성공적으로_수정한다() {
+        void update_success() {
             // given
-            Long userId = 1L;
-            Long categoryId = 2L;
-            var request = new UpdateCategoryRequest("수정된 이름", "#000000");
-            User fakeUser = User.builder().id(userId).build();
-            Category myCustomCategory = new Category(categoryId, "원본 이름", "#123456", fakeUser, null);
-
-            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(myCustomCategory));
+            given(categoryRepository.findById(customCategory.getId())).willReturn(Optional.of(customCategory));
+            given(categoryRepository.existsByUserAndName(user, request.name())).willReturn(false);
 
             // when
-            CategoryResponse response = categoryService.updateCustomCategory(userId, categoryId, request);
+            CategoryResponse response = categoryService.updateCustomCategory(user.getId(), customCategory.getId(), request);
 
             // then
-            assertThat(response.id()).isEqualTo(categoryId);
-            assertThat(response.name()).isEqualTo("수정된 이름");
-            assertThat(response.color()).isEqualTo("#000000");
+            assertThat(response.id()).isEqualTo(customCategory.getId());
+            assertThat(response.name()).isEqualTo("필라테스");
+            assertThat(response.color()).isEqualTo("#BBBBBB");
+        }
+
+        @Test
+        @DisplayName("성공 - 이름 변경 없이 색상만 변경")
+        void update_success_onlyColor() {
+            // given
+            UpdateCategoryRequest onlyColorRequest = new UpdateCategoryRequest(customCategory.getName(), "#CCCCCC");
+            given(categoryRepository.findById(customCategory.getId())).willReturn(Optional.of(customCategory));
+
+            // when
+            CategoryResponse response = categoryService.updateCustomCategory(user.getId(), customCategory.getId(), onlyColorRequest);
+
+            // then
+            assertThat(response.name()).isEqualTo(customCategory.getName()); // 이름은 그대로
+            assertThat(response.color()).isEqualTo("#CCCCCC"); // 색상만 변경
+            then(categoryRepository).should(never()).existsByUserAndName(any(), any()); // 이름 중복 검사는 실행되지 않아야 함
+        }
+
+        @Test
+        @DisplayName("실패 - 권한 없음 (다른 사용자 카테고리)")
+        void update_fail_permissionDenied_otherUser() {
+            // given
+            Long otherUserId = 2L;
+            given(categoryRepository.findById(customCategory.getId())).willReturn(Optional.of(customCategory));
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> categoryService.updateCustomCategory(otherUserId, customCategory.getId(), request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED);
+        }
+
+        @Test
+        @DisplayName("실패 - 권한 없음 (시스템 카테고리)")
+        void update_fail_permissionDenied_systemCategory() {
+            // given
+            given(categoryRepository.findById(systemParentCategory.getId())).willReturn(Optional.of(systemParentCategory));
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> categoryService.updateCustomCategory(user.getId(), systemParentCategory.getId(), request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED);
+        }
+
+        @Test
+        @DisplayName("실패 - 이름 중복")
+        void update_fail_duplicateName() {
+            // given
+            given(categoryRepository.findById(customCategory.getId())).willReturn(Optional.of(customCategory));
+            given(categoryRepository.existsByUserAndName(user, request.name())).willReturn(true);
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> categoryService.updateCustomCategory(user.getId(), customCategory.getId(), request));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CATEGORY_NAME_DUPLICATE);
+        }
+    }
+
+    @Nested
+    @DisplayName("사용자 정의 카테고리 삭제")
+    class DeleteCustomCategory {
+
+        private Category customCategory;
+
+        @BeforeEach
+        void setUp() {
+            customCategory = new Category(20L, "요가", "#AAAAAA", user, systemParentCategory);
+        }
+
+        @Test
+        @DisplayName("성공")
+        void delete_success() {
+            // given
+            given(categoryRepository.findById(customCategory.getId())).willReturn(Optional.of(customCategory));
+            given(activityRepository.existsByCategory(customCategory)).willReturn(false);
+            willDoNothing().given(categoryRepository).deleteById(customCategory.getId());
+
+            // when
+            categoryService.deleteCustomCategory(user.getId(), customCategory.getId());
+
+            // then
+            then(categoryRepository).should().deleteById(customCategory.getId());
         }
 
         @Test
         @DisplayName("실패 - 권한 없음")
-        void 다른_사람의_카테고리는_수정할_수_없다() {
+        void delete_fail_permissionDenied() {
             // given
-            Long myUserId = 1L;
             Long otherUserId = 2L;
-            Long otherUserCategoryId = 3L;
-            var request = new UpdateCategoryRequest("수정 시도", "#000000");
-            User fakeOtherUser = User.builder().id(otherUserId).build();
-            Category otherUsersCategory = new Category(otherUserCategoryId, "남의 카테고리", "#FFFFFF", fakeOtherUser, null);
-
-            when(categoryRepository.findById(otherUserCategoryId)).thenReturn(Optional.of(otherUsersCategory));
-
-            // when & then
-            assertThatThrownBy(() -> categoryService.updateCustomCategory(myUserId, otherUserCategoryId, request))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(ErrorCode.PERMISSION_DENIED);
-        }
-    }
-
-    @Nested
-    @DisplayName("카테고리 삭제")
-    class DeleteCategoryTest {
-        @Test
-        @DisplayName("성공")
-        void 자신의_커스텀_카테고리를_성공적으로_삭제한다() {
-            // given
-            Long userId = 1L;
-            Long categoryId = 2L;
-            User fakeUser = User.builder().id(userId).build();
-            Category myCustomCategory = new Category(categoryId, "삭제될 카테고리", "#123456", fakeUser, null);
-
-            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(myCustomCategory));
-            when(activityRepository.existsByCategory(myCustomCategory)).thenReturn(false);
+            given(categoryRepository.findById(customCategory.getId())).willReturn(Optional.of(customCategory));
 
             // when
-            categoryService.deleteCustomCategory(userId, categoryId);
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> categoryService.deleteCustomCategory(otherUserId, customCategory.getId()));
 
             // then
-            verify(categoryRepository).deleteById(categoryId);
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED);
         }
 
         @Test
-        @DisplayName("실패 - 활동 존재")
-        void 활동이_존재하는_카테고리는_삭제할_수_없다() {
+        @DisplayName("실패 - 사용 중인 카테고리")
+        void delete_fail_categoryInUse() {
             // given
-            Long userId = 1L;
-            Long categoryId = 2L;
-            User fakeUser = User.builder().id(userId).build();
-            Category myCustomCategory = new Category(categoryId, "삭제될 카테고리", "#123456", fakeUser, null);
+            given(categoryRepository.findById(customCategory.getId())).willReturn(Optional.of(customCategory));
+            given(activityRepository.existsByCategory(customCategory)).willReturn(true);
 
-            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(myCustomCategory));
-            when(activityRepository.existsByCategory(myCustomCategory)).thenReturn(true);
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> categoryService.deleteCustomCategory(user.getId(), customCategory.getId()));
 
-            // when & then
-            assertThatThrownBy(() -> categoryService.deleteCustomCategory(userId, categoryId))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(ErrorCode.CATEGORY_IN_USE);
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CATEGORY_IN_USE);
         }
     }
 }
