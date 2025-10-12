@@ -70,13 +70,14 @@ LifeLogix 프로젝트에 기여해주셔서 감사합니다. 원활한 협업�
 -   **테스트 계층**: 각 계층의 역할에 맞는 테스트를 작성하여 책임과 범위를 명확히 합니다.
     -   **`@DataJpaTest`**: Repository 및 Entity 검증.
     -   **`@ExtendWith(MockitoExtension.class)`**: Service 계층 단위 테스트.
-    -   **`@SpringBootTest`**: Controller를 포함한 API End-to-End 통합 테스트.
+    -   **`@WebMvcTest`**: Controller 계층 슬라이스 테스트.
+    -   **`@SpringBootTest`**: DB 연동을 포함한 전체 통합 테스트 (필요 시).
 
 -   **테스트 그룹화**: 하나의 클래스에 테스트할 기능(메서드)이 여러 개일 경우, JUnit 5의 `@Nested`를 사용하여 기능별로 테스트를 그룹화합니다.
 
 -   **테스트명**:
-    -   **메서드명**: 한글 BDD 스타일로, 테스트 시나리오를 서술합니다. (e.g., `사용자_정의_카테고리를_성공적으로_생성한다()`)
-    -   **`@DisplayName`**: 테스트 그룹을 대표하는 간결한 '제목'을 한글로 작성합니다. (e.g., `"사용자 정의 카테고리 생성"`)
+    -   **메서드명**: `when_should` 또는 `success`/`fail`과 같이 시나리오를 유추할 수 있는 간결한 **영어**로 작성합니다. (e.g., `create_success()`, `create_fail_duplicateName()`)
+    -   **`@DisplayName`**: 테스트 그룹과 각 테스트 케이스의 시나리오를 **한글**로 명확하게 서술합니다. (e.g., `"성공 - 201 Created"`)
 
 -   **테스트 데이터 생성**:
     -   서비스 단위 테스트에서 Mock 엔티티 데이터가 필요한 경우, 엔티티 내부에 `@deprecated public` 생성자를 추가하여 사용합니다.
@@ -84,9 +85,10 @@ LifeLogix 프로젝트에 기여해주셔서 감사합니다. 원활한 협업�
 
 -   **Assertion 스타일**:
     -   모든 테스트 검증은 AssertJ 라이브러리를 사용하며, `org.assertj.core.api.Assertions` 클래스를 `static import`하여 사용합니다.
+    -   예외 검증의 경우 `org.junit.jupiter.api.Assertions.assertThrows`를 사용합니다.
         ```java
         import static org.assertj.core.api.Assertions.assertThat;
-        import static org.assertj.core.api.Assertions.assertThatThrownBy;
+        import static org.junit.jupiter.api.Assertions.assertThrows;
         ```
 
 ## 6. 문서화

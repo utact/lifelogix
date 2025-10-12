@@ -47,7 +47,6 @@ class TimelineServiceTest {
 
     private User user;
     private Category category;
-    private Category anotherCategory;
     private Activity activity;
     private Activity anotherActivity;
 
@@ -55,7 +54,7 @@ class TimelineServiceTest {
     void setUp() {
         user = new User(1L, "test@example.com", "password", "tester", null);
         category = new Category(100L, "운동", "#111111", user, null);
-        anotherCategory = new Category(200L, "공부", "#222222", user, null);
+        Category anotherCategory = new Category(200L, "공부", "#222222", user, null);
         activity = new Activity(10L, "달리기", user, category);
         anotherActivity = new Activity(11L, "코딩", user, anotherCategory);
     }
