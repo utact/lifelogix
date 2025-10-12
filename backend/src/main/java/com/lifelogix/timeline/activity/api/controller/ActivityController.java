@@ -8,10 +8,10 @@ import com.lifelogix.timeline.activity.application.ActivityService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -26,9 +26,10 @@ public class ActivityController {
      **/
     @PostMapping
     public ResponseEntity<ActivityResponse> createActivity(
-            @AuthenticationPrincipal Long userId,
+            Principal principal,
             @Valid @RequestBody CreateActivityRequest request) {
 
+        Long userId = Long.parseLong(principal.getName());
         ActivityResponse response = activityService.createActivity(userId, request);
         URI location = URI.create("/api/v1/activities/" + response.id());
         return ResponseEntity.created(location).body(response);
@@ -39,8 +40,9 @@ public class ActivityController {
      **/
     @GetMapping
     public ResponseEntity<List<ActivitiesByCategoryResponse>> getAllActivities(
-            @AuthenticationPrincipal Long userId) {
+            Principal principal) {
 
+        Long userId = Long.parseLong(principal.getName());
         List<ActivitiesByCategoryResponse> responses = activityService.findAllActivitiesGroupedByCategory(userId);
         return ResponseEntity.ok(responses);
     }
@@ -50,10 +52,11 @@ public class ActivityController {
      **/
     @PutMapping("/{activityId}")
     public ResponseEntity<ActivityResponse> updateActivity(
-            @AuthenticationPrincipal Long userId,
+            Principal principal,
             @PathVariable Long activityId,
             @Valid @RequestBody UpdateActivityRequest request) {
 
+        Long userId = Long.parseLong(principal.getName());
         ActivityResponse response = activityService.updateActivity(userId, activityId, request);
         return ResponseEntity.ok(response);
     }
@@ -63,9 +66,10 @@ public class ActivityController {
      **/
     @DeleteMapping("/{activityId}")
     public ResponseEntity<Void> deleteActivity(
-            @AuthenticationPrincipal Long userId,
+            Principal principal,
             @PathVariable Long activityId) {
 
+        Long userId = Long.parseLong(principal.getName());
         activityService.deleteActivity(userId, activityId);
         return ResponseEntity.noContent().build();
     }
