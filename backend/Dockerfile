@@ -20,8 +20,8 @@ RUN ./gradlew build --no-daemon
 
 
 # --- 2단계: 빌드된 jar 파일을 실행 ---
-# 더 가벼운 Java 17 실행 환경(JRE) 이미지 사용
-FROM openjdk:17-jre-slim
+# 안정적인 Eclipse Temurin JRE 이미지 사용
+FROM eclipse-temurin:17-jre-jammy
 
 # 이전 빌드 단계에서 생성된 jar 파일을 실행 환경으로 복사
 # build/libs/lifelogix-0.0.1-SNAPSHOT.jar 파일을 app.jar 라는 이름으로 복사
