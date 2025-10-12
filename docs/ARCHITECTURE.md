@@ -2,7 +2,7 @@
 
 - **Version:** 1.0.0
 - **Status:** Finalized
-- **Last Updated:** 2025-10-09
+- **Last Updated:** 2025-10-12
 
 이 문서는 LifeLogix 백엔드 시스템을 구성하는 핵심 기술 스택, 아키텍처 원칙, 그리고 그 과정에서 마주했던 주요 기술적 도전과 해결 기록을 종합적으로 담고 있습니다.
 
@@ -42,7 +42,7 @@
 우리 서버는 클라이언트의 상태를 세션 등에 저장하지 않는 **완전한 무상태(Stateless)를** 유지하는 것을 원칙으로 합니다. 모든 요청은 JWT를 통해 그 자체로 인증에 필요한 모든 정보를 포함해야 합니다. 이는 서버의 확장성을 보장하고, 클라이언트와 서버 간의 의존성을 낮추기 위함입니다.
 
 -   **JWT Payload 규칙**: 토큰의 주체(`sub`)는 반드시 사용자의 불변하는 `ID`(PK)를 사용합니다.
--   **Principal 해석**: `JwtAuthenticationConverter`를 커스텀하여, 컨트롤러가 `@AuthenticationPrincipal`을 통해 `Long` 타입의 사용자 ID를 안전하게 주입받도록 합니다.
+-   **Principal 해석**: 컨트롤러가 표준 `java.security.Principal` 객체를 주입받고, `principal.getName()`을 통해 얻은 `String` 타입의 사용자 ID를 `Long`으로 파싱하여 사용합니다. 이는 `@WithMockUser`를 사용하는 테스트 코드와의 호환성을 위함입니다.
 
 ### 2.3. 데이터 접근 원칙
 
@@ -51,8 +51,8 @@
 
 ### 2.4. 테스트 코드 원칙
 
--   **계층별 테스트**: `@DataJpaTest`(Repository), `@ExtendWith(MockitoExtension.class)`(Service), `@SpringBootTest`(Controller)를 사용하여 각 계층의 역할을 명확히 분리하여 테스트합니다.
--   **가독성**: JUnit 5의 `@Nested`와 `@DisplayName`을 적극적으로 사용하여 테스트의 컨텍스트를 명시적으로 표현하고, BDD 스타일의 한글 메서드명을 통해 테스트 코드 자체가 명세서가 되도록 합니다.
+-   **계층별 테스트**: `@DataJpaTest`(Repository), `@ExtendWith(MockitoExtension.class)`(Service), **`@WebMvcTest`**(Controller)를 사용하여 각 계층의 역할을 명확히 분리하여 테스트합니다. `@SpringBootTest`는 필요한 경우 DB까지 연동하는 전체 통합 테스트에 사용합니다.
+-   **가독성**: JUnit 5의 `@Nested`와 `@DisplayName`을 적극적으로 사용하여 테스트의 컨텍스트를 명시적으로 표현하고, `영어_메서드명`과 `한글 DisplayName` 조합을 통해 테스트 코드 자체가 명세서가 되도록 합니다.
 
 ---
 
@@ -67,8 +67,8 @@
 ### 3.2. 확장성을 고려한 Stateless 인증 설계
 
 -   **문제 인식**: 안정성을 넘어, 향후 사용자 급증에 대비한 서버 증설(Scale-out)이 용이한 구조가 필요했습니다.
--   **해결 과정**: Stateless 아키텍처를 위해 JWT를 채택하고, Spring Security의 `JwtAuthenticationConverter`를 커스텀하여 인증 흐름을 최적화했습니다.
--   **결론 및 성과**: JWT 기반의 Stateless 아키텍처를 채택하여 서버의 수평적 확장에 용이한 기반을 마련했습니다. 특히 `JwtAuthenticationConverter` 커스터마이징을 통해, 토큰의 `sub` 클레임을 컨트롤러 단에서 타입-세이프한 `Long` 타입 ID로 즉시 주입받도록 구현하여 인증 로직의 Boilerplate 코드를 줄이고 코드 안정성과 가독성을 높였습니다.
+-   **해결 과정**: Stateless 아키텍처를 위해 JWT를 채택하고, `@WebMvcTest`와의 호환성을 위해 컨트롤러에서 `@AuthenticationPrincipal` 대신 표준 `Principal`을 사용하도록 리팩토링했습니다.
+-   **결론 및 성과**: JWT 기반의 Stateless 아키텍처를 채택하여 서버의 수평적 확장에 용이한 기반을 마련했습니다. 특히 컨트롤러 단에서 표준 `Principal`을 사용함으로써, 스프링 시큐리티에 대한 강한 결합을 낮추고 테스트 코드의 안정성과 가독성을 높였습니다.
 
 ### 3.3. 선제적 성능 최적화 (N+1 문제)
 
