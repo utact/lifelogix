@@ -1,6 +1,6 @@
+# 로컬 개발 환경 전용 설정
 spring:
   datasource:
-    # 도커 컴포즈 환경 변수 참고
     url: jdbc:postgresql://localhost:5432/lifelogix
     username: lifelogix
     password: lifelogix
@@ -10,15 +10,6 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
-        show_sql: true
-        format_sql: true
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          # Base64 인코딩된 비밀 키 (jwt.secret과 동일한 값)
-          secret-key: 'a2VlcGl0c2VjcmV0Zm9ybGlmZWxvZ2l4cHJvamVjdGJ5dGFjdA=='
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
-jwt:
-  secret: 'a2VlcGl0c2VjcmV0Zm9ybGlmZWxvZ2l4cHJvamVjdGJ5dGFjdA==' # Base64 인코딩된 임시 비밀 키
-  expiration-ms: 3600000 # 1시간 (밀리초 단위)
+JWT_SECRET: 'a2VlcGl0c2VjcmV0Zm9ybGlmZWxvZ2l4cHJvamVjdGJ5dGFjdA=='
