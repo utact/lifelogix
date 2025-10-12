@@ -159,13 +159,13 @@ class TimelineControllerTest {
     @Nested
     @DisplayName("DELETE /api/v1/timeline/block/{timeBlockId} - 타임블록 삭제")
     class DeleteTimeBlock {
-        private final Long timeBlockId = 1L;
 
         @Test
         @WithMockUser(username = "1")
         @DisplayName("성공 - 204 No Content")
         void delete_success() throws Exception {
             // given
+            Long timeBlockId = 1L;
             willDoNothing().given(timelineService).deleteTimeBlock(userId, timeBlockId);
 
             // when & then
