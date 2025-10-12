@@ -10,9 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDate;
 
 @RestController
@@ -27,9 +27,10 @@ public class TimelineController {
      **/
     @GetMapping
     public ResponseEntity<TimelineResponse> getDailyTimeline(
-            @AuthenticationPrincipal Long userId,
+            Principal principal,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
+        Long userId = Long.parseLong(principal.getName());
         TimelineResponse response = timelineService.getDailyTimeline(userId, date);
         return ResponseEntity.ok(response);
     }
@@ -39,9 +40,10 @@ public class TimelineController {
      **/
     @PostMapping("/block")
     public ResponseEntity<BlockDetailResponse> createOrUpdateTimeBlock(
-            @AuthenticationPrincipal Long userId,
+            Principal principal,
             @Valid @RequestBody CreateTimeBlockRequest request) {
 
+        Long userId = Long.parseLong(principal.getName());
         BlockDetailResponse response = timelineService.createOrUpdateTimeBlock(userId, request);
 
         // 일관성을 위해 201 Created로 응답하고 Location 헤더는 비움
@@ -53,10 +55,11 @@ public class TimelineController {
      **/
     @PutMapping("/block/{timeBlockId}")
     public ResponseEntity<BlockDetailResponse> updateTimeBlock(
-            @AuthenticationPrincipal Long userId,
+            Principal principal,
             @PathVariable Long timeBlockId,
             @Valid @RequestBody UpdateTimeBlockRequest request) {
 
+        Long userId = Long.parseLong(principal.getName());
         BlockDetailResponse response = timelineService.updateTimeBlock(userId, timeBlockId, request);
         return ResponseEntity.ok(response);
     }
@@ -66,9 +69,10 @@ public class TimelineController {
      **/
     @DeleteMapping("/block/{timeBlockId}")
     public ResponseEntity<Void> deleteTimeBlock(
-            @AuthenticationPrincipal Long userId,
+            Principal principal,
             @PathVariable Long timeBlockId) {
 
+        Long userId = Long.parseLong(principal.getName());
         timelineService.deleteTimeBlock(userId, timeBlockId);
         return ResponseEntity.noContent().build();
     }
