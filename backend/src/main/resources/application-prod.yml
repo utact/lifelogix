@@ -1,7 +1,7 @@
 # Render 배포 환경(prod) 전용 설정
 spring:
   datasource:
-    url: ${DATABASE_URL}
+    url: jdbc:${DATABASE_URL}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
