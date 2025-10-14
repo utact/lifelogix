@@ -29,4 +29,4 @@ COPY --from=build /home/gradle/project/build/libs/lifelogix-0.0.1-SNAPSHOT.jar a
 
 # 애플리케이션 실행 명령어
 # 서버가 시작될 때 "java -jar /app.jar" 명령어가 실행
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+CMD ["java", "-Dserver.port=${PORT}", "-jar", "/app.jar"]
