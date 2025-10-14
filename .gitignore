@@ -32,6 +32,7 @@ hs_err_pid*
 ### Gradle ###
 .gradle
 backend/build/
+backend/bin/
 
 # Ignore Gradle GUI config
 gradle-app.setting
@@ -144,3 +145,32 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+
+# =========================================
+# Frontend (Next.js)
+# =========================================
+
+# Dependencies
+/frontend/node_modules
+
+# Build directory
+/frontend/.next
+
+# Production build
+/frontend/out
+
+# Local environment variables
+/frontend/.env*.local
+
+# Log files
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+/frontend/pnpm-debug.log*
+
+# Next.js cache
+/frontend/.vercel
+
+# Editor directories and files
+.vscode
