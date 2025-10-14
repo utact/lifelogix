@@ -1,3 +1,6 @@
+server:
+  port: ${PORT}
+
 # Render 배포 환경(prod) 전용 설정
 spring:
   datasource:
