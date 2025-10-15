@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const BACKEND_URL = "http://localhost:8080/api/v1"
+const BACKEND_URL = process.env.NODE_ENV === 'production'
+  ? "https://lifelogix-dca5.onrender.com/api/v1"
+  : "http://localhost:8080/api/v1";
 
 export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
   const path = params.path.join("/")
