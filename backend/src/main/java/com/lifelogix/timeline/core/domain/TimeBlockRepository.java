@@ -12,7 +12,7 @@ import java.util.Optional; // 👈 Optional import 추가
 
 public interface TimeBlockRepository extends JpaRepository<TimeBlock, Long> {
 
-    @Query("SELECT tb FROM TimeBlock tb JOIN FETCH tb.activity a JOIN FETCH a.category c WHERE a.user.id = :userId AND tb.date = :date")
+    @Query("SELECT tb FROM TimeBlock tb JOIN FETCH tb.activity a JOIN FETCH a.user JOIN FETCH a.category c WHERE a.user.id = :userId AND tb.date = :date")
     List<TimeBlock> findByUserIdAndDate(@Param("userId") Long userId, @Param("date") LocalDate date);
 
     boolean existsByActivity(Activity activity);

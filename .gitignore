@@ -174,3 +174,7 @@ $RECYCLE.BIN/
 
 # Editor directories and files
 .vscode
+
+# Communication
+PR.md 
+LOG.md

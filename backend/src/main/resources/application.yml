@@ -8,11 +8,6 @@ spring:
       hibernate:
         show_sql: true
         format_sql: true
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          secret-key: ${JWT_SECRET}
 
 # JWT 관련 공통 설정
 jwt:
