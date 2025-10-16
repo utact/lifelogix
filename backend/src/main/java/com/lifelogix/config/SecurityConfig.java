@@ -28,10 +28,10 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor // Lombok 어노테이션 추가
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtProperties jwtProperties; // @Value 대신 JwtProperties 주입
+    private final JwtProperties jwtProperties;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -40,7 +40,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/auth/**", "/api/v1/health").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
@@ -73,7 +73,6 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        // 주입받은 jwtProperties 객체 사용
         byte[] decodedKey = Base64.getDecoder().decode(jwtProperties.getSecret());
         SecretKeySpec secretKeySpec = new SecretKeySpec(decodedKey, "HmacSHA256");
         return NimbusJwtDecoder.withSecretKey(secretKeySpec).build();
