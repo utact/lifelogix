@@ -26,7 +26,7 @@ public class ActivityController {
 
     /**
      * 새로운 활동을 생성
-     **/
+     */
     @PostMapping
     public ResponseEntity<ActivityResponse> createActivity(
             Principal principal,
@@ -41,7 +41,7 @@ public class ActivityController {
 
     /**
      * 사용자가 정의한 모든 활동 목록을 카테고리별로 그룹화하여 조회
-     **/
+     */
     @GetMapping
     public ResponseEntity<List<ActivitiesByCategoryResponse>> getAllActivities(
             Principal principal) {
@@ -54,7 +54,7 @@ public class ActivityController {
 
     /**
      * 자신의 활동 정보를 수정
-     **/
+     */
     @PutMapping("/{activityId}")
     public ResponseEntity<ActivityResponse> updateActivity(
             Principal principal,
@@ -69,7 +69,7 @@ public class ActivityController {
 
     /**
      * 자신의 활동을 삭제
-     **/
+     */
     @DeleteMapping("/{activityId}")
     public ResponseEntity<Void> deleteActivity(
             Principal principal,

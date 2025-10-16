@@ -27,7 +27,7 @@ public class TimelineController {
 
     /**
      * 특정 날짜의 타임라인을 조회
-     **/
+     */
     @GetMapping
     public ResponseEntity<TimelineResponse> getDailyTimeline(
             Principal principal,
@@ -41,7 +41,7 @@ public class TimelineController {
 
     /**
      * 특정 시간 슬롯에 활동을 기록(생성 또는 수정)
-     **/
+     */
     @PostMapping("/block")
     public ResponseEntity<BlockDetailResponse> createOrUpdateTimeBlock(
             Principal principal,
@@ -57,7 +57,7 @@ public class TimelineController {
 
     /**
      * 특정 타임블록의 활동을 변경
-     **/
+     */
     @PutMapping("/block/{timeBlockId}")
     public ResponseEntity<BlockDetailResponse> updateTimeBlock(
             Principal principal,
@@ -72,7 +72,7 @@ public class TimelineController {
 
     /**
      * 특정 타임블록을 삭제
-     **/
+     */
     @DeleteMapping("/block/{timeBlockId}")
     public ResponseEntity<Void> deleteTimeBlock(
             Principal principal,

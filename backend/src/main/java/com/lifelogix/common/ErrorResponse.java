@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  * @param error HTTP 상태 메시지 (e.g., "Bad Request")
  * @param message 에러에 대한 상세 메시지
  * @param path 요청이 발생한 URI
- **/
+ */
 public record ErrorResponse(
         LocalDateTime timestamp,
         int status,

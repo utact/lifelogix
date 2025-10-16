@@ -25,7 +25,7 @@ public class CategoryController {
 
     /**
      * 새로운 사용자 정의 카테고리를 생성
-     **/
+     */
     @PostMapping
     public ResponseEntity<CategoryResponse> createCustomCategory(
             Principal principal,
@@ -40,7 +40,7 @@ public class CategoryController {
 
     /**
      * 사용 가능한 모든 카테고리 목록(시스템 기본 + 사용자 정의)을 조회
-     **/
+     */
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getAllCategories(
             Principal principal) {
@@ -53,7 +53,7 @@ public class CategoryController {
 
     /**
      * 자신의 커스텀 카테고리 정보를 수정
-     **/
+     */
     @PutMapping("/{categoryId}")
     public ResponseEntity<CategoryResponse> updateCustomCategory(
             Principal principal,
@@ -68,7 +68,7 @@ public class CategoryController {
 
     /**
      * 자신의 커스텀 카테고리를 삭제
-     **/
+     */
     @DeleteMapping("/{categoryId}")
     public ResponseEntity<Void> deleteCustomCategory(
             Principal principal,
