@@ -26,14 +26,14 @@ export default function BalancePage() {
       router.push("/login")
     } else {
       setIsAuthenticated(true)
-      loadData()
+      loadData(token)
     }
   }, [router])
 
-  const loadData = async () => {
+  const loadData = async (token: string) => {
     try {
       const today = new Date().toISOString().split("T")[0]
-      const timelineData = await api.getTimeline(today)
+      const timelineData = await api.getTimeline(token, today)
       setTimeBlocks(timelineData.timeBlocks)
     } catch (error) {
       toast({

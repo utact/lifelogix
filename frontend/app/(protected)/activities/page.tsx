@@ -35,10 +35,13 @@ export default function ActivitiesPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const loadData = async () => {
+  const loadData = async (token: string) => {
     try {
       setIsLoading(true)
-      const [activitiesData, categoriesData] = await Promise.all([api.getActivities(), api.getCategories()])
+      const [activitiesData, categoriesData] = await Promise.all([
+        api.getActivities(token),
+        api.getCategories(token),
+      ])
       setActivityGroups(activitiesData)
       setCategories(categoriesData)
     } catch (error) {
@@ -58,11 +61,18 @@ export default function ActivitiesPage() {
       router.push("/login")
       return
     }
-    loadData()
+    loadData(token)
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const token = localStorage.getItem("accessToken")
+    if (!token) {
+      toast({ title: "인증 토큰이 없습니다. 다시 로그인해주세요.", variant: "destructive" })
+      router.push("/login")
+      return
+    }
+
     if (!formData.categoryId) {
       toast({
         title: "카테고리를 선택해주세요",
@@ -73,7 +83,7 @@ export default function ActivitiesPage() {
 
     setIsSubmitting(true)
     try {
-      await api.createActivity({
+      await api.createActivity(token, {
         name: formData.name,
         categoryId: Number.parseInt(formData.categoryId),
       })
@@ -82,7 +92,7 @@ export default function ActivitiesPage() {
       })
       setIsOpen(false)
       setFormData({ name: "", categoryId: "" })
-      loadData()
+      loadData(token)
     } catch (error) {
       toast({
         title: "활동 생성 실패",
