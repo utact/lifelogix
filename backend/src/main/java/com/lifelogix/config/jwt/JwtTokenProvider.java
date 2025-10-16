@@ -9,12 +9,11 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SecurityException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.util.Date;
 
 @Slf4j
@@ -27,7 +26,7 @@ public class JwtTokenProvider {
 
     public JwtTokenProvider(JwtProperties jwtProperties) { // @ConfigurationProperties 사용
         byte[] keyBytes = Decoders.BASE64.decode(jwtProperties.getSecret());
-        this.key = Keys.hmacShaKeyFor(keyBytes);
+        this.key = new SecretKeySpec(keyBytes, "HmacSHA256");
         this.accessTokenExpirationMilliseconds = jwtProperties.getAccessTokenExpirationMs();
         this.refreshTokenExpirationMilliseconds = jwtProperties.getRefreshTokenExpirationMs();
     }
@@ -50,33 +49,5 @@ public class JwtTokenProvider {
                 .expiration(expiryDate)
                 .signWith(key)
                 .compact();
-    }
-
-    public Long getUserIdFromToken(String token) {
-        return Long.parseLong(getClaims(token).getSubject());
-    }
-
-    public boolean validateToken(String token) {
-        try {
-            getClaims(token);
-            return true;
-        } catch (ExpiredJwtException e) {
-            log.warn("Expired JWT token: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.TOKEN_EXPIRED);
-        } catch (SecurityException | MalformedJwtException e) { // 서명 오류, 형식 오류를 더 구체적으로 로깅
-            log.warn("Invalid JWT token: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.TOKEN_INVALID);
-        } catch (JwtException | IllegalArgumentException e) {
-            log.warn("JWT error: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.TOKEN_INVALID);
-        }
-    }
-
-    private Claims getClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
     }
 }

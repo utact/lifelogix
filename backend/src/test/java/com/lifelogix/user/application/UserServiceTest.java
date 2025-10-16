@@ -14,6 +14,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
 
 import java.util.Optional;
 
@@ -37,6 +40,9 @@ class UserServiceTest {
 
     @Mock
     private JwtTokenProvider jwtTokenProvider;
+
+    @Mock
+    private JwtDecoder jwtDecoder;
 
     // 공통 사용 변수
     private final String email = "test@example.com";
@@ -141,9 +147,9 @@ class UserServiceTest {
             // given
             String refreshToken = "valid-refresh-token";
             User user = User.builder().id(userId).build();
+            Jwt mockJwt = mock(Jwt.class);
 
-            // validateToken이 boolean을 반환한다고 가정하고, true를 반환하도록 설정
-            given(jwtTokenProvider.validateToken(refreshToken)).willReturn(true);
+            given(jwtDecoder.decode(refreshToken)).willReturn(mockJwt); // 토큰 디코딩 성공
             given(userRepository.findByRefreshToken(refreshToken)).willReturn(Optional.of(user));
             given(jwtTokenProvider.generateAccessToken(user)).willReturn("new-access-token");
 
@@ -155,13 +161,29 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("실패 - 유효하지 않은 리프레시 토큰")
+        @DisplayName("실패 - 유효하지 않은 토큰 (디코딩 실패)")
         void refresh_fail_invalidToken() {
             // given
             String refreshToken = "invalid-refresh-token";
-            // 토큰 자체는 유효하지만, 해당 토큰을 가진 유저가 없는 경우를 테스트
-            given(jwtTokenProvider.validateToken(refreshToken)).willReturn(true);
-            given(userRepository.findByRefreshToken(refreshToken)).willReturn(Optional.empty());
+            given(jwtDecoder.decode(refreshToken)).willThrow(new JwtException("Invalid token"));
+
+            // when
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> userService.refreshAccessToken(refreshToken));
+
+            // then
+            assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.TOKEN_INVALID);
+        }
+
+        @Test
+        @DisplayName("실패 - DB에 존재하지 않는 토큰")
+        void refresh_fail_tokenNotFoundInDb() {
+            // given
+            String refreshToken = "valid-but-not-in-db-token";
+            Jwt mockJwt = mock(Jwt.class);
+
+            given(jwtDecoder.decode(refreshToken)).willReturn(mockJwt); // 디코딩은 성공
+            given(userRepository.findByRefreshToken(refreshToken)).willReturn(Optional.empty()); // DB에는 부재
 
             // when
             BusinessException exception = assertThrows(BusinessException.class,
