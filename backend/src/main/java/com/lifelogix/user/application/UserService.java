@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final JwtDecoder jwtDecoder;
 
     @Transactional
     public void register(String email, String password, String username) {
@@ -63,11 +66,16 @@ public class UserService {
     @Transactional
     public String refreshAccessToken(String refreshToken) {
         log.info("[Backend|UserService] RefreshAccessToken - Attempt");
-        jwtTokenProvider.validateToken(refreshToken);
+        try {
+            jwtDecoder.decode(refreshToken);
+        } catch (JwtException e) {
+            log.warn("[Backend|UserService] RefreshAccessToken - Failed: Invalid refresh token", e);
+            throw new BusinessException(ErrorCode.TOKEN_INVALID);
+        }
 
         User user = userRepository.findByRefreshToken(refreshToken)
                 .orElseThrow(() -> {
-                    log.warn("[Backend|UserService] RefreshAccessToken - Failed: Invalid refresh token");
+                    log.warn("[Backend|UserService] RefreshAccessToken - Failed: No user found for refresh token");
                     return new BusinessException(ErrorCode.TOKEN_INVALID);
                 });
 
