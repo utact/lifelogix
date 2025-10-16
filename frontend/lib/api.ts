@@ -1,11 +1,19 @@
 const API_BASE_URL = "/api/proxy/v1";
 
-// Helper function to handle API responses
-async function handleResponse<T>(
-  response: Response,
-  requestInfo: { method: string; url: string },
-): Promise<T> {
+async function handleResponse<T>(response: Response, requestInfo: { method: string; url: string }): Promise<T> {
   const { method, url } = requestInfo;
+
+  if (response.status === 401) {
+    console.error(`[Frontend|API] <-- 401 Unauthorized ${method} ${url}. Redirecting to login.`);
+    // We use a hard redirect to ensure all state is cleared.
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      window.location.href = '/login';
+    }
+    // Throw an error to prevent further processing
+    throw new Error("Unauthorized");
+  }
 
   if (response.ok) {
     console.log(`[Frontend|API] <-- ${response.status} ${method} ${url} - Success`);
@@ -13,18 +21,13 @@ async function handleResponse<T>(
     console.error(`[Frontend|API] <-- ${response.status} ${method} ${url} - Failed`);
   }
 
-  if (response.status === 204) {
-    // No Content
-    return Promise.resolve({} as T);
-  }
+  if (response.status === 204) return Promise.resolve({} as T);
 
   let data;
   try {
     data = await response.json();
   } catch (error) {
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status} and non-JSON response.`);
-    }
+    if (!response.ok) throw new Error(`Request failed with status ${response.status} and non-JSON response.`);
     return Promise.resolve({} as T);
   }
 
@@ -35,235 +38,46 @@ async function handleResponse<T>(
   return data as T;
 }
 
-export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  username: string;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface Category {
-  id: number;
-  name: string;
-  color: string;
-  isCustom: boolean;
-  parentId: number | null;
-}
-
-export interface Activity {
-  id: number;
-  name: string;
-}
-
-export interface ActivityGroup {
-  categoryId: number;
-  categoryName: string;
-  activities: Activity[];
-}
-
-export interface TimeBlockActivity {
-  timeBlockId: number;
-  activityId: number;
-  activityName: string;
-  categoryName: string;
-  categoryColor: string;
-}
-
-export interface TimeBlock {
-  startTime: string;
-  plan: TimeBlockActivity | null;
-  actual: TimeBlockActivity | null;
-}
-
-export interface TimelineResponse {
-  date: string;
-  timeBlocks: TimeBlock[];
-}
-
-export interface CreateTimeBlockRequest {
-  date: string;
-  startTime: string;
-  type: "PLAN" | "ACTUAL";
-  activityId: number;
-}
-
-export interface UpdateTimeBlockRequest {
-  activityId: number;
-}
-
-export interface CreateActivityRequest {
-  name: string;
-  categoryId: number;
-}
-
-export interface UpdateActivityRequest {
-  name: string;
-}
-
-export interface CreateCategoryRequest {
-  name: string;
-  color: string;
-  parentId: number;
-}
-
-export interface UpdateCategoryRequest {
-  name: string;
-  color: string;
-}
+export interface AuthResponse { accessToken: string; refreshToken: string; tokenType: string; }
+export interface RegisterRequest { email: string; password: string; username: string; }
+export interface LoginRequest { email: string; password: string; }
+export interface Category {}
+export interface ActivityGroup {}
+export interface TimelineResponse {}
 
 class ApiClient {
-  private getAuthHeader(): HeadersInit {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }
-
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}, token: string | null = null): Promise<T> {
     const method = options.method || "GET";
     const url = `${API_BASE_URL}${endpoint}`;
     console.log(`[Frontend|API] --> ${method} ${url}`);
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...this.getAuthHeader(),
-        ...options.headers,
-      },
-    });
+    const headers: HeadersInit = { "Content-Type": "application/json", ...options.headers };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, { ...options, headers });
     return handleResponse<T>(response, { method, url });
   }
 
-  // Auth
   async register(data: RegisterRequest): Promise<{ message: string }> {
-    return this.request<{ message: string }>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.request("/auth/register", { method: "POST", body: JSON.stringify(data) });
   }
-
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-    if (typeof window !== "undefined") {
-      localStorage.setItem("accessToken", response.accessToken);
-      localStorage.setItem("refreshToken", response.refreshToken);
-    }
-    return response;
+    return this.request("/auth/login", { method: "POST", body: JSON.stringify(data) });
   }
 
-  async logout(): Promise<void> {
-    await this.request<void>("/auth/logout", {
-      method: "POST",
-    });
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-    }
+  async logout(token: string): Promise<void> {
+    await this.request("/auth/logout", { method: "POST" }, token);
   }
-
-  async refreshToken(): Promise<{ accessToken: string }> {
-    const refreshTokenValue = typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
-    if (!refreshTokenValue) {
-      throw new Error("No refresh token available.");
-    }
-    const response = await this.request<{ accessToken: string }>("/auth/refresh", {
-      method: "POST",
-      body: JSON.stringify({ refreshToken: refreshTokenValue }),
-    });
-    if (typeof window !== "undefined") {
-      localStorage.setItem("accessToken", response.accessToken);
-    }
-    return response;
+  async getTimeline(token: string, date: string): Promise<TimelineResponse> {
+    return this.request(`/timeline?date=${date}`, {}, token);
   }
-
-  // Categories
-  async getCategories(): Promise<Category[]> {
-    return this.request<Category[]>("/categories");
+  async getActivities(token: string): Promise<ActivityGroup[]> {
+    return this.request("/activities", {}, token);
   }
-
-  async createCategory(data: CreateCategoryRequest): Promise<Category> {
-    return this.request<Category>("/categories", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateCategory(categoryId: number, data: UpdateCategoryRequest): Promise<Category> {
-    return this.request<Category>(`/categories/${categoryId}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteCategory(categoryId: number): Promise<void> {
-    return this.request<void>(`/categories/${categoryId}`, {
-      method: "DELETE",
-    });
-  }
-
-  // Activities
-  async getActivities(): Promise<ActivityGroup[]> {
-    return this.request<ActivityGroup[]>("/activities");
-  }
-
-  async createActivity(data: CreateActivityRequest): Promise<Activity> {
-    return this.request<Activity>("/activities", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateActivity(activityId: number, data: UpdateActivityRequest): Promise<Activity> {
-    return this.request<Activity>(`/activities/${activityId}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteActivity(activityId: number): Promise<void> {
-    return this.request<void>(`/activities/${activityId}`, {
-      method: "DELETE",
-    });
-  }
-
-  // Timeline
-  async getTimeline(date: string): Promise<TimelineResponse> {
-    return this.request<TimelineResponse>(`/timeline?date=${date}`);
-  }
-
-  async createTimeBlock(data: CreateTimeBlockRequest): Promise<TimeBlockActivity> {
-    return this.request<TimeBlockActivity>("/timeline/block", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateTimeBlock(
-    timeBlockId: number,
-    data: UpdateTimeBlockRequest,
-  ): Promise<TimeBlockActivity> {
-    return this.request<TimeBlockActivity>(`/timeline/block/${timeBlockId}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteTimeBlock(timeBlockId: number): Promise<void> {
-    return this.request<void>(`/timeline/block/${timeBlockId}`, {
-      method: "DELETE",
-    });
+  async getCategories(token: string): Promise<Category[]> {
+    return this.request("/categories", {}, token);
   }
 }
 

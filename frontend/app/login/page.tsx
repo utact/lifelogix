@@ -1,56 +1,55 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/hooks/use-toast"
-import { api } from "@/lib/api"
-import { Lock } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import Image from "next/image"
+import { useState, useEffect, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Lock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
+  const router = useRouter();
+  const { toast } = useToast();
+  const { login, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({ email: "", password: "" });
+
+  useEffect(() => {
+    // 로딩이 끝났고, 이미 인증된 상태라면 대시보드로 이동
+    if (!isAuthLoading && isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [isAuthenticated, isAuthLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
+    e.preventDefault();
+    setIsSubmitting(true);
     try {
-      const response = await api.login(formData)
-      toast({
-        title: "로그인 성공",
-        description: "LifeLogix에 오신 것을 환영합니다",
-      })
-      router.push("/dashboard")
+      const response = await api.login(formData);
+      login(response); // AuthContext에 로그인 처리를 위임하면, Context가 라우팅까지 처리
+      toast({ title: "로그인 성공", description: "LifeLogix에 오신 것을 환영합니다" });
     } catch (error) {
       toast({
         title: "로그인 실패",
         description: error instanceof Error ? error.message : "다시 시도해주세요",
         variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
+      });
+      setIsSubmitting(false);
     }
-  }
+  };
+
+
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-background to-muted/20">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-
           <CardTitle className="text-2xl font-bold text-balance text-center">LifeLogix</CardTitle>
           <CardDescription className="text-center">의도적인 삶을 위한 운영체제</CardDescription>
         </CardHeader>
@@ -78,8 +77,8 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "로그인 중..." : "로그인"}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "로그인 중..." : "로그인"}
             </Button>
           </form>
 
@@ -119,5 +118,5 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
