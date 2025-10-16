@@ -1,13 +1,10 @@
 # 모든 환경에 적용되는 공통 설정
-spring:
-  profiles:
-    active: local
-  jpa:
-    # JPA 관련 공통 설정
-    properties:
-      hibernate:
-        show_sql: true
-        format_sql: true
+jpa:
+  # JPA 관련 공통 설정
+  properties:
+    hibernate:
+      show_sql: true
+      format_sql: true
 
 # JWT 관련 공통 설정
 jwt:
