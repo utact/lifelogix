@@ -8,16 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { User, Mail, Calendar, LogOut, Trophy, Sparkles } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { AIGoalPlanner } from "@/components/ai-goal-planner"
-import { GamificationPanel } from "@/components/gamification-panel"
-import { api } from "@/lib/api"
+import { useAuth } from "@/context/AuthContext"
 
 export default function MyPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { logout } = useAuth()
   const [stats, setStats] = useState({ categories: 0, activities: 0 })
   // TODO: Fetch user info from a /api/users/me endpoint
   const [userInfo, setUserInfo] = useState({
@@ -29,9 +25,10 @@ export default function MyPage() {
   useEffect(() => {
     const token = localStorage.getItem("accessToken")
     if (!token) {
+      // This should theoretically not be reached due to ProtectedLayout
+      // but as a fallback, we redirect.
       router.push("/login")
     } else {
-      setIsAuthenticated(true)
       fetchData(token)
     }
   }, [router])
@@ -45,20 +42,18 @@ export default function MyPage() {
       const activityCount = activityGroups.reduce((acc, group) => acc + group.activities.length, 0)
       setStats({ categories: categories.length, activities: activityCount })
       // Once user info API is available, fetch and set it here
-      // e.g., const user = await api.getMe(); setUserInfo(user);
+      // e.g., const user = await api.getMe(token); setUserInfo(user);
     } catch (error) {
       toast({ title: "데이터 로드 실패", variant: "destructive" })
     }
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken")
-    localStorage.removeItem("refreshToken")
+    logout()
     toast({
       title: "로그아웃 완료",
       description: "다시 로그인해주세요",
     })
-    router.push("/login")
   }
 
   if (!isAuthenticated) {

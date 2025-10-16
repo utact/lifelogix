@@ -3,15 +3,15 @@
 import { Button } from "@/components/ui/button"
 import { LogOut, Settings, User, Users, Home, CalendarDays, Scale } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useRouter, usePathname } from "next/navigation"
+import { useAuth } from "@/context/AuthContext"
 
 export function DashboardHeader() {
   const router = useRouter()
   const pathname = usePathname()
+  const { logout } = useAuth()
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken")
-    router.push("/login")
+    logout()
   }
 
   const navItems = [
