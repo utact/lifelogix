@@ -1,7 +1,9 @@
 package com.lifelogix.config;
 
 import com.lifelogix.config.jwt.JwtProperties;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -22,16 +24,52 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtProperties jwtProperties;
+
+    @PostConstruct
+    public void logJwtSecret() {
+        String secret = jwtProperties.getSecret();
+        if (secret == null || secret.isBlank()) {
+            log.error("!!! JWT SECRET IS NOT SET !!!");
+            return;
+        }
+        log.info("--- JWT Secret Key Diagnostics ---");
+        log.info("Loaded JWT Secret Length: {}", secret.length());
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(secret.getBytes(StandardCharsets.UTF_8));
+            String sha256hex = toHexString(hash);
+            log.info("Loaded JWT Secret SHA-256 Hash: {}", sha256hex);
+        } catch (NoSuchAlgorithmException e) {
+            log.error("Could not calculate SHA-256 hash for JWT Secret", e);
+        }
+        log.info("----------------------------------");
+    }
+
+    private String toHexString(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
