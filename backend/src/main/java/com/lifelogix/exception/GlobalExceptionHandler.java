@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
     /**
      * 어노테이션을 통한 유효성 검증 실패 시 발생하는 예외 처리
      * -> 400 Bad Request 반환
-     **/
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpServletRequest request) {
         String errorMessage = ex.getBindingResult().getFieldErrors().stream()

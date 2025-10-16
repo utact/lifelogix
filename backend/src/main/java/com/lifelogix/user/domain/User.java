@@ -5,7 +5,7 @@ import lombok.*;
 
 /**
  * 사용자 정보를 나타내는 JPA 엔티티
- **/
+ */
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

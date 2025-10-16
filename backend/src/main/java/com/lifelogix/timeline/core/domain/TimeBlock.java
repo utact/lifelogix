@@ -52,7 +52,7 @@ public class TimeBlock {
 
     /**
      * 타임블록에 기록된 활동을 변경
-     **/
+     */
     public void updateActivity(Activity activity) {
         this.activity = activity;
     }

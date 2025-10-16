@@ -23,7 +23,7 @@ public class UserController {
 
     /**
      * 현재 인증된 사용자의 정보(내 정보)를 조회
-     **/
+     */
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMyInfo(Principal principal) {
         Long userId = Long.parseLong(principal.getName());
