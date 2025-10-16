@@ -14,18 +14,22 @@ export function useDashboardData(selectedDate: Date) {
   };
 
   const fetchData = useCallback(async () => {
+    const dateStr = formatDate(selectedDate);
+    console.log(`[Frontend|useDashboardData] Fetching data - Attempt for date: ${dateStr}`);
     try {
       setIsLoading(true);
       setError(null);
-      const dateStr = formatDate(selectedDate);
       const [timelineData, activitiesData] = await Promise.all([
         api.getTimeline(dateStr),
         api.getActivities(),
       ]);
       setTimeBlocks(timelineData.timeBlocks);
       setActivities(activitiesData);
+      console.log(`[Frontend|useDashboardData] Fetching data - Success for date: ${dateStr}`);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch data'));
+      const error = err instanceof Error ? err : new Error('Failed to fetch data');
+      console.error(`[Frontend|useDashboardData] Fetching data - Failed for date: ${dateStr}`, error);
+      setError(error);
     } finally {
       setIsLoading(false);
     }

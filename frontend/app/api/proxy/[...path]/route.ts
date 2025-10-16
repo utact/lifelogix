@@ -1,109 +1,50 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = "http://localhost:8080/api/v1"
+const BACKEND_URL = 'https://lifelogix-dca5.onrender.com/api/v1';
 
-export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
-  const path = params.path.join("/")
-  const searchParams = request.nextUrl.searchParams.toString()
-  const url = `${BACKEND_URL}/${path}${searchParams ? `?${searchParams}` : ""}`
+async function handler(req: NextRequest) {
+  const path = req.nextUrl.pathname.replace('/api/proxy', '');
+  const searchParams = req.nextUrl.searchParams.toString();
+  const url = `${BACKEND_URL}${path}${searchParams ? `?${searchParams}` : ''}`;
 
-  const headers: HeadersInit = {}
-  const authHeader = request.headers.get("authorization")
-  if (authHeader) {
-    headers.Authorization = authHeader
-  }
+  // Forward all headers from the original request except for the host.
+  const headers = new Headers(req.headers);
+  headers.delete('host');
 
-  try {
-    const response = await fetch(url, { headers })
-    const data = await response.json()
-
-    return NextResponse.json(data, { status: response.status })
-  } catch (error) {
-    return NextResponse.json({ message: "Backend request failed" }, { status: 500 })
-  }
-}
-
-export async function POST(request: NextRequest, { params }: { params: { path: string[] } }) {
-  const path = params.path.join("/")
-  const url = `${BACKEND_URL}/${path}`
-  const body = await request.json()
-
-  console.log("[v0 Proxy] POST request to:", url)
-  console.log("[v0 Proxy] Request body:", body)
-
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  }
-  const authHeader = request.headers.get("authorization")
-  if (authHeader) {
-    headers.Authorization = authHeader
-  }
+  // Read the body as text to ensure the payload is forwarded without modification.
+  const body = await req.text();
 
   try {
     const response = await fetch(url, {
-      method: "POST",
+      method: req.method,
       headers,
-      body: JSON.stringify(body),
-    })
+      // Pass the body as a string, or null if it's empty.
+      body: body || null,
+      redirect: 'manual',
+    });
 
-    console.log("[v0 Proxy] Backend response status:", response.status)
+    // Create a new response from the backend's response to ensure clean headers.
+    const responseHeaders = new Headers(response.headers);
 
-    const data = await response.json()
-    console.log("[v0 Proxy] Backend response data:", data)
+    return new NextResponse(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+    });
 
-    return NextResponse.json(data, { status: response.status })
   } catch (error) {
-    console.error("[v0 Proxy] Backend request error:", error)
-    return NextResponse.json({ message: "Backend request failed", error: String(error) }, { status: 500 })
+    console.error(`[API Proxy] Error fetching ${url}:`, error);
+    return NextResponse.json(
+      { message: 'Proxy error', error: String(error) },
+      { status: 502 } // Bad Gateway
+    );
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { path: string[] } }) {
-  const path = params.path.join("/")
-  const url = `${BACKEND_URL}/${path}`
-  const body = await request.json()
-
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  }
-  const authHeader = request.headers.get("authorization")
-  if (authHeader) {
-    headers.Authorization = authHeader
-  }
-
-  try {
-    const response = await fetch(url, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(body),
-    })
-    const data = await response.json()
-
-    return NextResponse.json(data, { status: response.status })
-  } catch (error) {
-    return NextResponse.json({ message: "Backend request failed" }, { status: 500 })
-  }
-}
-
-export async function DELETE(request: NextRequest, { params }: { params: { path: string[] } }) {
-  const path = params.path.join("/")
-  const url = `${BACKEND_URL}/${path}`
-
-  const headers: HeadersInit = {}
-  const authHeader = request.headers.get("authorization")
-  if (authHeader) {
-    headers.Authorization = authHeader
-  }
-
-  try {
-    const response = await fetch(url, {
-      method: "DELETE",
-      headers,
-    })
-    const data = await response.json()
-
-    return NextResponse.json(data, { status: response.status })
-  } catch (error) {
-    return NextResponse.json({ message: "Backend request failed" }, { status: 500 })
-  }
-}
+export const GET = handler;
+export const POST = handler;
+export const PUT = handler;
+export const DELETE = handler;
+export const PATCH = handler;
+export const HEAD = handler;
+export const OPTIONS = handler;

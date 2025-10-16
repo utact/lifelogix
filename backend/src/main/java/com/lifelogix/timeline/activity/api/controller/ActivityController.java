@@ -7,6 +7,8 @@ import com.lifelogix.timeline.activity.api.dto.response.ActivityResponse;
 import com.lifelogix.timeline.activity.application.ActivityService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ActivityController {
 
+    private static final Logger log = LoggerFactory.getLogger(ActivityController.class);
     private final ActivityService activityService;
 
     /**
@@ -30,6 +33,7 @@ public class ActivityController {
             @Valid @RequestBody CreateActivityRequest request) {
 
         Long userId = Long.parseLong(principal.getName());
+        log.info("[Backend|ActivityController] CreateActivity - Received request from userId: {} with name: {}", userId, request.name());
         ActivityResponse response = activityService.createActivity(userId, request);
         URI location = URI.create("/api/v1/activities/" + response.id());
         return ResponseEntity.created(location).body(response);
@@ -43,6 +47,7 @@ public class ActivityController {
             Principal principal) {
 
         Long userId = Long.parseLong(principal.getName());
+        log.info("[Backend|ActivityController] GetAllActivities - Received request from userId: {}", userId);
         List<ActivitiesByCategoryResponse> responses = activityService.findAllActivitiesGroupedByCategory(userId);
         return ResponseEntity.ok(responses);
     }
@@ -57,6 +62,7 @@ public class ActivityController {
             @Valid @RequestBody UpdateActivityRequest request) {
 
         Long userId = Long.parseLong(principal.getName());
+        log.info("[Backend|ActivityController] UpdateActivity - Received request from userId: {} for activityId: {}", userId, activityId);
         ActivityResponse response = activityService.updateActivity(userId, activityId, request);
         return ResponseEntity.ok(response);
     }
@@ -70,6 +76,7 @@ public class ActivityController {
             @PathVariable Long activityId) {
 
         Long userId = Long.parseLong(principal.getName());
+        log.info("[Backend|ActivityController] DeleteActivity - Received request from userId: {} for activityId: {}", userId, activityId);
         activityService.deleteActivity(userId, activityId);
         return ResponseEntity.noContent().build();
     }

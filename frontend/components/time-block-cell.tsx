@@ -70,22 +70,18 @@ export function TimeBlockCell({
 
     setIsCopying(true)
     try {
-      console.log("[v0] Copying plan to actual:", { date, time, activityId: timeBlock.plan.activityId })
       await api.createTimeBlock({
         date,
         startTime: time,
         type: "ACTUAL",
         activityId: timeBlock.plan.activityId,
       })
-      console.log("[v0] Successfully created actual block, refreshing timeline...")
       await onUpdate()
-      console.log("[v0] Timeline refreshed")
       toast({
         title: "실제 기록 완료",
         description: "계획한 대로 실행하셨네요! 🎉",
       })
     } catch (error) {
-      console.error("[v0] Error copying plan to actual:", error)
       toast({
         title: "저장 실패",
         description: error instanceof Error ? error.message : "다시 시도해주세요",
