@@ -1,5 +1,8 @@
 # 모든 환경에 적용되는 공통 설정
-jpa:
+spring:
+  profiles:
+    active: prod
+  jpa:
   # JPA 관련 공통 설정
   properties:
     hibernate:
