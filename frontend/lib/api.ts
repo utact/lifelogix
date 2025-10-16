@@ -41,8 +41,22 @@ async function handleResponse<T>(response: Response, requestInfo: { method: stri
 export interface AuthResponse { accessToken: string; refreshToken: string; tokenType: string; }
 export interface RegisterRequest { email: string; password: string; username: string; }
 export interface LoginRequest { email: string; password: string; }
-export interface Category {}
-export interface ActivityGroup {}
+export interface Category {
+  id: number;
+  name: string;
+  color: string;
+  isCustom: boolean;
+  parentId: number | null;
+}
+export interface Activity {
+  id: number;
+  name: string;
+}
+export interface ActivityGroup {
+  categoryId: number;
+  categoryName: string;
+  activities: Activity[];
+}
 export interface TimelineResponse {}
 
 class ApiClient {
@@ -78,6 +92,12 @@ class ApiClient {
   }
   async getCategories(token: string): Promise<Category[]> {
     return this.request("/categories", {}, token);
+  }
+  async createCategory(token: string, data: { name: string; color: string; parentId: number; }): Promise<Category> {
+    return this.request("/categories", { method: "POST", body: JSON.stringify(data) }, token);
+  }
+  async createActivity(token: string, data: { name: string; categoryId: number; }): Promise<Activity> {
+    return this.request("/activities", { method: "POST", body: JSON.stringify(data) }, token);
   }
 }
 

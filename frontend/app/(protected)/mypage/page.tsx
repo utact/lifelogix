@@ -32,15 +32,15 @@ export default function MyPage() {
       router.push("/login")
     } else {
       setIsAuthenticated(true)
-      fetchData()
+      fetchData(token)
     }
   }, [router])
 
-  const fetchData = async () => {
+  const fetchData = async (token: string) => {
     try {
       const [categories, activityGroups] = await Promise.all([
-        api.getCategories(),
-        api.getActivities(),
+        api.getCategories(token),
+        api.getActivities(token),
       ])
       const activityCount = activityGroups.reduce((acc, group) => acc + group.activities.length, 0)
       setStats({ categories: categories.length, activities: activityCount })

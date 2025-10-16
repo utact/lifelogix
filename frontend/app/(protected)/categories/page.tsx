@@ -35,10 +35,10 @@ export default function CategoriesPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const loadCategories = async () => {
+  const loadCategories = async (token: string) => {
     try {
       setIsLoading(true)
-      const data = await api.getCategories()
+      const data = await api.getCategories(token)
       setCategories(data)
     } catch (error) {
       toast({
@@ -57,11 +57,18 @@ export default function CategoriesPage() {
       router.push("/login")
       return
     }
-    loadCategories()
+    loadCategories(token)
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const token = localStorage.getItem("accessToken")
+    if (!token) {
+      toast({ title: "인증 토큰이 없습니다. 다시 로그인해주세요.", variant: "destructive" })
+      router.push("/login")
+      return
+    }
+
     if (!formData.parentId) {
       toast({
         title: "부모 카테고리를 선택해주세요",
@@ -72,17 +79,20 @@ export default function CategoriesPage() {
 
     setIsSubmitting(true)
     try {
-      await api.createCategory({
-        name: formData.name,
-        color: formData.color,
-        parentId: Number.parseInt(formData.parentId),
-      })
+      await api.createCategory(
+        token,
+        {
+          name: formData.name,
+          color: formData.color,
+          parentId: Number.parseInt(formData.parentId),
+        }
+      )
       toast({
         title: "카테고리 생성 완료",
       })
       setIsOpen(false)
       setFormData({ name: "", color: "#5D6D7E", parentId: "" })
-      loadCategories()
+      loadCategories(token)
     } catch (error) {
       toast({
         title: "카테고리 생성 실패",
