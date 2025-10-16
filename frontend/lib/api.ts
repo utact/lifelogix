@@ -1,13 +1,32 @@
 const API_BASE_URL = "/api/proxy/v1";
 
 // Helper function to handle API responses
-async function handleResponse<T>(response: Response): Promise<T> {
+async function handleResponse<T>(
+  response: Response,
+  requestInfo: { method: string; url: string },
+): Promise<T> {
+  const { method, url } = requestInfo;
+
+  if (response.ok) {
+    console.log(`[Frontend|API] <-- ${response.status} ${method} ${url} - Success`);
+  } else {
+    console.error(`[Frontend|API] <-- ${response.status} ${method} ${url} - Failed`);
+  }
+
   if (response.status === 204) {
     // No Content
     return Promise.resolve({} as T);
   }
 
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch (error) {
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status} and non-JSON response.`);
+    }
+    return Promise.resolve({} as T);
+  }
 
   if (!response.ok) {
     const error = data.message || `Request failed with status ${response.status}`;
@@ -15,7 +34,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
   }
   return data as T;
 }
-
 
 export interface AuthResponse {
   accessToken: string;
@@ -80,7 +98,7 @@ export interface CreateTimeBlockRequest {
 }
 
 export interface UpdateTimeBlockRequest {
-    activityId: number;
+  activityId: number;
 }
 
 export interface CreateActivityRequest {
@@ -89,29 +107,32 @@ export interface CreateActivityRequest {
 }
 
 export interface UpdateActivityRequest {
-    name: string;
+  name: string;
 }
 
 export interface CreateCategoryRequest {
-    name: string;
-    color: string;
-    parentId: number;
+  name: string;
+  color: string;
+  parentId: number;
 }
 
 export interface UpdateCategoryRequest {
-    name: string;
-    color: string;
+  name: string;
+  color: string;
 }
-
 
 class ApiClient {
   private getAuthHeader(): HeadersInit {
-    const token = typeof window !== 'undefined' ? localStorage.getItem("accessToken") : null;
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const method = options.method || "GET";
+    const url = `${API_BASE_URL}${endpoint}`;
+    console.log(`[Frontend|API] --> ${method} ${url}`);
+
+    const response = await fetch(url, {
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -119,7 +140,7 @@ class ApiClient {
         ...options.headers,
       },
     });
-    return handleResponse<T>(response);
+    return handleResponse<T>(response, { method, url });
   }
 
   // Auth
@@ -135,38 +156,37 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify(data),
     });
-    if (typeof window !== 'undefined') {
-        localStorage.setItem("accessToken", response.accessToken);
-        localStorage.setItem("refreshToken", response.refreshToken);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("accessToken", response.accessToken);
+      localStorage.setItem("refreshToken", response.refreshToken);
     }
     return response;
   }
 
   async logout(): Promise<void> {
     await this.request<void>("/auth/logout", {
-        method: "POST",
+      method: "POST",
     });
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
     }
   }
 
   async refreshToken(): Promise<{ accessToken: string }> {
-      const refreshTokenValue = typeof window !== 'undefined' ? localStorage.getItem("refreshToken") : null;
-      if (!refreshTokenValue) {
-          throw new Error("No refresh token available.");
-      }
-      const response = await this.request<{ accessToken: string }>("/auth/refresh", {
-          method: "POST",
-          body: JSON.stringify({ refreshToken: refreshTokenValue }),
-      });
-      if (typeof window !== 'undefined') {
-        localStorage.setItem("accessToken", response.accessToken);
-      }
-      return response;
+    const refreshTokenValue = typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
+    if (!refreshTokenValue) {
+      throw new Error("No refresh token available.");
+    }
+    const response = await this.request<{ accessToken: string }>("/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken: refreshTokenValue }),
+    });
+    if (typeof window !== "undefined") {
+      localStorage.setItem("accessToken", response.accessToken);
+    }
+    return response;
   }
-
 
   // Categories
   async getCategories(): Promise<Category[]> {
@@ -182,14 +202,14 @@ class ApiClient {
 
   async updateCategory(categoryId: number, data: UpdateCategoryRequest): Promise<Category> {
     return this.request<Category>(`/categories/${categoryId}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
+      method: "PUT",
+      body: JSON.stringify(data),
     });
   }
 
   async deleteCategory(categoryId: number): Promise<void> {
     return this.request<void>(`/categories/${categoryId}`, {
-        method: "DELETE",
+      method: "DELETE",
     });
   }
 
@@ -206,16 +226,16 @@ class ApiClient {
   }
 
   async updateActivity(activityId: number, data: UpdateActivityRequest): Promise<Activity> {
-      return this.request<Activity>(`/activities/${activityId}`, {
-          method: "PUT",
-          body: JSON.stringify(data),
-      });
+    return this.request<Activity>(`/activities/${activityId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
   }
 
   async deleteActivity(activityId: number): Promise<void> {
-      return this.request<void>(`/activities/${activityId}`, {
-          method: "DELETE",
-      });
+    return this.request<void>(`/activities/${activityId}`, {
+      method: "DELETE",
+    });
   }
 
   // Timeline
@@ -230,17 +250,20 @@ class ApiClient {
     });
   }
 
-  async updateTimeBlock(timeBlockId: number, data: UpdateTimeBlockRequest): Promise<TimeBlockActivity> {
-      return this.request<TimeBlockActivity>(`/timeline/block/${timeBlockId}`, {
-          method: "PUT",
-          body: JSON.stringify(data),
-      });
+  async updateTimeBlock(
+    timeBlockId: number,
+    data: UpdateTimeBlockRequest,
+  ): Promise<TimeBlockActivity> {
+    return this.request<TimeBlockActivity>(`/timeline/block/${timeBlockId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
   }
 
   async deleteTimeBlock(timeBlockId: number): Promise<void> {
-      return this.request<void>(`/timeline/block/${timeBlockId}`, {
-          method: "DELETE",
-      });
+    return this.request<void>(`/timeline/block/${timeBlockId}`, {
+      method: "DELETE",
+    });
   }
 }
 

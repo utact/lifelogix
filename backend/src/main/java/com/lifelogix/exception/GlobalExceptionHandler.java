@@ -23,7 +23,6 @@ public class GlobalExceptionHandler {
      **/
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpServletRequest request) {
-        // 유효성 검증에 실패한 필드들의 에러 메시지를 조합
         String errorMessage = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
@@ -35,7 +34,7 @@ public class GlobalExceptionHandler {
                 errorMessage,
                 request.getRequestURI()
         );
-        log.warn("Validation failed: {}", errorResponse);
+        log.warn("[Backend|ExceptionHandler] ValidationFailed - URI: {}, Message: {}", request.getRequestURI(), errorMessage);
         return ResponseEntity.badRequest().body(errorResponse);
     }
 
@@ -50,7 +49,7 @@ public class GlobalExceptionHandler {
                 errorCode.getMessage(),
                 request.getRequestURI()
         );
-        log.warn("BusinessException Occurred: {}", errorResponse);
+        log.warn("[Backend|ExceptionHandler] BusinessException - URI: {}, Code: {}, Message: {}", request.getRequestURI(), errorCode.name(), errorCode.getMessage());
         return new ResponseEntity<>(errorResponse, errorCode.getStatus());
     }
 
@@ -64,7 +63,7 @@ public class GlobalExceptionHandler {
                 "서버 내부 오류가 발생했습니다. 관리자에게 문의해주세요.",
                 request.getRequestURI()
         );
-        log.error("Unhandled Exception Occurred:", ex);
+        log.error("[Backend|ExceptionHandler] UnhandledException - URI: {}", request.getRequestURI(), ex);
         return new ResponseEntity<>(errorResponse, org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

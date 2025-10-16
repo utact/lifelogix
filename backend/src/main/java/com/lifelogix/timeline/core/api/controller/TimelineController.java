@@ -7,6 +7,8 @@ import com.lifelogix.timeline.core.api.dto.response.TimelineResponse;
 import com.lifelogix.timeline.core.application.TimelineService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class TimelineController {
 
+    private static final Logger log = LoggerFactory.getLogger(TimelineController.class);
     private final TimelineService timelineService;
 
     /**
@@ -31,6 +34,7 @@ public class TimelineController {
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
         Long userId = Long.parseLong(principal.getName());
+        log.info("[Backend|TimelineController] GetDailyTimeline - Received request from userId: {} for date: {}", userId, date);
         TimelineResponse response = timelineService.getDailyTimeline(userId, date);
         return ResponseEntity.ok(response);
     }
@@ -44,6 +48,7 @@ public class TimelineController {
             @Valid @RequestBody CreateTimeBlockRequest request) {
 
         Long userId = Long.parseLong(principal.getName());
+        log.info("[Backend|TimelineController] CreateOrUpdateTimeBlock - Received request from userId: {} for date: {}, time: {}", userId, request.date(), request.startTime());
         BlockDetailResponse response = timelineService.createOrUpdateTimeBlock(userId, request);
 
         // 일관성을 위해 201 Created로 응답하고 Location 헤더는 비움
@@ -60,6 +65,7 @@ public class TimelineController {
             @Valid @RequestBody UpdateTimeBlockRequest request) {
 
         Long userId = Long.parseLong(principal.getName());
+        log.info("[Backend|TimelineController] UpdateTimeBlock - Received request from userId: {} for timeBlockId: {}", userId, timeBlockId);
         BlockDetailResponse response = timelineService.updateTimeBlock(userId, timeBlockId, request);
         return ResponseEntity.ok(response);
     }
@@ -73,6 +79,7 @@ public class TimelineController {
             @PathVariable Long timeBlockId) {
 
         Long userId = Long.parseLong(principal.getName());
+        log.info("[Backend|TimelineController] DeleteTimeBlock - Received request from userId: {} for timeBlockId: {}", userId, timeBlockId);
         timelineService.deleteTimeBlock(userId, timeBlockId);
         return ResponseEntity.noContent().build();
     }
