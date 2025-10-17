@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
-import { Lock } from "lucide-react"
+import { Lock, Eye, EyeOff } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 export default function RegisterPage() {
@@ -21,15 +21,27 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    passwordConfirm: "",
     username: "",
   })
+  const [showPassword, setShowPassword] = useState(false)
+
+  const passwordsMatch = formData.password === formData.passwordConfirm
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!passwordsMatch) {
+      toast({
+        title: "비밀번호 불일치",
+        description: "입력한 비밀번호가 서로 다릅니다.",
+        variant: "destructive",
+      })
+      return
+    }
     setIsLoading(true)
 
     try {
-      await api.register(formData)
+      await api.register({ email: formData.email, password: formData.password, username: formData.username })
       toast({
         title: "회원가입 성공",
         description: "로그인 페이지로 이동합니다",
@@ -79,16 +91,52 @@ export default function RegisterPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">비밀번호</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="8자 이상, 특수문자 포함"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="8자 이상, 특수문자 포함"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <div className="space-y-2">
+              <Label htmlFor="passwordConfirm">비밀번호 확인</Label>
+              <div className="relative">
+                <Input
+                  id="passwordConfirm"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="비밀번호를 다시 입력하세요"
+                  value={formData.passwordConfirm}
+                  onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+              {formData.passwordConfirm && !passwordsMatch && (
+                <p className="text-xs text-destructive">비밀번호가 일치하지 않습니다.</p>
+              )}
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading || !passwordsMatch || !formData.password}>
               {isLoading ? "가입 중..." : "회원가입"}
             </Button>
           </form>
