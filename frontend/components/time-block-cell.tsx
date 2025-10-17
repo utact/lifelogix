@@ -18,6 +18,8 @@ import { api, type TimeBlock, type ActivityGroup, type Category } from "@/lib/ap
 import { useToast } from "@/hooks/use-toast"
 import { Check, Sparkles, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ActivityCombobox } from "./activity-combobox"
+import { CategoryCombobox } from "./category-combobox"
 
 interface TimeBlockCellProps {
   time: string
@@ -320,31 +322,12 @@ export function TimeBlockCell({
                 {!isCreatingNew ? (
                   <div className="space-y-2">
                     <Label>활동</Label>
-                    <Select value={selectedActivityId} onValueChange={setSelectedActivityId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="활동을 선택하세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activities.map((group) => {
-                          const category = categories.find((c) => c.id === group.categoryId)
-                          return (
-                            <div key={group.categoryId}>
-                              <div
-                                className="mx-1 my-1 rounded-sm px-2 py-1.5 text-xs font-semibold text-primary-foreground"
-                                style={{ backgroundColor: category?.color || "#888" }}
-                              >
-                                {group.categoryName}
-                              </div>
-                              {group.activities.map((activity) => (
-                                <SelectItem key={activity.id} value={activity.id.toString()} className="mx-1 w-[calc(100%-0.5rem)]">
-                                  {activity.name}
-                                </SelectItem>
-                              ))}
-                            </div>
-                          )
-                        })}
-                      </SelectContent>
-                    </Select>
+                    <ActivityCombobox
+                      activityGroups={activities}
+                      categories={categories}
+                      value={selectedActivityId}
+                      onValueChange={setSelectedActivityId}
+                    />
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -359,18 +342,11 @@ export function TimeBlockCell({
                     </div>
                     <div className="space-y-2">
                       <Label>카테고리</Label>
-                      <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="카테고리를 선택하세요" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.id.toString()}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <CategoryCombobox
+                        categories={categories}
+                        value={selectedCategoryId}
+                        onValueChange={setSelectedCategoryId}
+                      />
                     </div>
                   </div>
                 )}
