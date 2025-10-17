@@ -93,19 +93,24 @@ export function BulkTimeBlockDialog({
                   <SelectValue placeholder="활동을 선택하세요" />
                 </SelectTrigger>
                 <SelectContent>
-                  {activities.map((group) => (
-                    <div key={group.categoryId}>
-                      <div className="mx-1 my-1 rounded-sm bg-muted px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                        {group.categoryName}
+                  {activities.map((group) => {
+                    const category = categories.find((c) => c.id === group.categoryId)
+                    return (
+                      <div key={group.categoryId}>
+                        <div
+                          className="mx-1 my-1 rounded-sm px-2 py-1.5 text-xs font-semibold text-primary-foreground"
+                          style={{ backgroundColor: category?.color || "#888" }}
+                        >
+                          {group.categoryName}
+                        </div>
+                        {group.activities.map((activity) => (
+                          <SelectItem key={activity.id} value={activity.id.toString()} className="mx-1 w-[calc(100%-0.5rem)]">
+                            {activity.name}
+                          </SelectItem>
+                        ))}
                       </div>
-                      {group.activities.map((activity) => (
-                        <SelectItem key={activity.id} value={activity.id.toString()} className="mx-1 w-[calc(100%-0.5rem)]">
-                          {activity.name}
-                        </SelectItem>
-                      ))}
-                    </div>
-                  ))}
-                </SelectContent>
+                    )
+                  })}                </SelectContent>
               </Select>
             </div>
           ) : (
