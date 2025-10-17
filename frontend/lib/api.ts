@@ -5,13 +5,11 @@ async function handleResponse<T>(response: Response, requestInfo: { method: stri
 
   if (response.status === 401) {
     console.error(`[Frontend|API] <-- 401 Unauthorized ${method} ${url}. Redirecting to login.`);
-    // We use a hard redirect to ensure all state is cleared.
     if (typeof window !== 'undefined') {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       window.location.href = '/login';
     }
-    // Throw an error to prevent further processing
     throw new Error("Unauthorized");
   }
 
@@ -57,6 +55,19 @@ export interface ActivityGroup {
   categoryName: string;
   activities: Activity[];
 }
+export interface UserResponse {
+  id: number;
+  email: string;
+  username: string;
+}
+
+export interface CreateTimeBlockRequest {
+  date: string;
+  startTime: string;
+  type: 'PLAN' | 'ACTUAL';
+  activityId: number;
+}
+
 export interface TimelineResponse {}
 
 class ApiClient {
@@ -80,9 +91,11 @@ class ApiClient {
   async login(data: LoginRequest): Promise<AuthResponse> {
     return this.request("/auth/login", { method: "POST", body: JSON.stringify(data) });
   }
-
   async logout(token: string): Promise<void> {
     await this.request("/auth/logout", { method: "POST" }, token);
+  }
+  async getMe(token: string): Promise<UserResponse> {
+    return this.request('/users/me', {}, token);
   }
   async getTimeline(token: string, date: string): Promise<TimelineResponse> {
     return this.request(`/timeline?date=${date}`, {}, token);
@@ -98,6 +111,10 @@ class ApiClient {
   }
   async createActivity(token: string, data: { name: string; categoryId: number; }): Promise<Activity> {
     return this.request("/activities", { method: "POST", body: JSON.stringify(data) }, token);
+  }
+
+  async createTimeBlock(token: string, data: CreateTimeBlockRequest): Promise<void> {
+    return this.request("/timeline/block", { method: "POST", body: JSON.stringify(data) }, token);
   }
 }
 

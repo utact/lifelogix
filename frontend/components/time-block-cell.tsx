@@ -14,7 +14,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { api, type TimeBlock, type ActivityGroup } from "@/lib/api"
+import { api, type TimeBlock, type ActivityGroup, type Category } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { Check, Sparkles, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -24,6 +24,8 @@ interface TimeBlockCellProps {
   timeBlock: TimeBlock | null
   date: string
   activities: ActivityGroup[]
+  categories: Category[]
+  token: string | null;
   onUpdate: () => Promise<void>
   onDragStart: (type: "PLAN" | "ACTUAL") => void
   onDragMove: () => void
@@ -39,6 +41,8 @@ export function TimeBlockCell({
   timeBlock,
   date,
   activities,
+  categories,
+  token,
   onUpdate,
   onDragStart,
   onDragMove,
@@ -59,6 +63,8 @@ export function TimeBlockCell({
   const [isCopying, setIsCopying] = useState(false)
 
   const handleCopyPlanToActual = async () => {
+    if (!token) return; 
+
     if (!timeBlock?.plan) {
       toast({
         title: "계획이 없습니다",
@@ -70,7 +76,7 @@ export function TimeBlockCell({
 
     setIsCopying(true)
     try {
-      await api.createTimeBlock({
+      await api.createTimeBlock(token, {
         date,
         startTime: time,
         type: "ACTUAL",
@@ -93,6 +99,8 @@ export function TimeBlockCell({
   }
 
   const handleSubmit = async () => {
+    if (!token) return;
+
     if (!selectedActivityId && !isCreatingNew) {
       toast({
         title: "활동을 선택해주세요",
@@ -102,23 +110,23 @@ export function TimeBlockCell({
     }
 
     if (isCreatingNew) {
-      if (!newActivityName.trim()) {
+      if (!newActivityName.trim() || !selectedCategoryId) {
         toast({
-          title: "활동 이름을 입력해주세요",
-          variant: "destructive",
-        })
-        return
+            title: "활동 이름과 카테고리를 모두 선택해주세요",
+            variant: "destructive",
+        });
+        return;
       }
 
       setIsSubmitting(true)
       try {
-        const categoryId = selectedCategoryId ? Number.parseInt(selectedCategoryId) : activities[0]?.categoryId
-        const newActivity = await api.createActivity({
+        const categoryId = Number.parseInt(selectedCategoryId);
+        const newActivity = await api.createActivity(token, {
           name: newActivityName,
           categoryId,
         })
 
-        await api.createTimeBlock({
+        await api.createTimeBlock(token, {
           date,
           startTime: time,
           type: blockType,
@@ -131,6 +139,7 @@ export function TimeBlockCell({
         })
         setIsOpen(false)
         setNewActivityName("")
+        setSelectedCategoryId("")
         setIsCreatingNew(false)
         await onUpdate()
       } catch (error) {
@@ -147,7 +156,7 @@ export function TimeBlockCell({
 
     setIsSubmitting(true)
     try {
-      await api.createTimeBlock({
+      await api.createTimeBlock(token, {
         date,
         startTime: time,
         type: blockType,
@@ -186,7 +195,6 @@ export function TimeBlockCell({
         >
           {timeBlock?.plan ? (
             <>
-              {/* Category Block - 30% width */}
               <div
                 className="w-[30%] rounded-md px-2 py-1 text-[10px] font-medium text-center transition-all duration-200 hover:scale-[1.02]"
                 style={{
@@ -232,7 +240,6 @@ export function TimeBlockCell({
               >
                 {timeBlock.actual.activityName}
               </div>
-              {/* Category Block - 30% width */}
               <div
                 className="w-[30%] rounded-md px-2 py-1 text-[10px] font-medium text-center transition-all duration-200 hover:scale-[1.02]"
                 style={{
@@ -320,11 +327,11 @@ export function TimeBlockCell({
                       <SelectContent>
                         {activities.map((group) => (
                           <div key={group.categoryId}>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            <div className="mx-1 my-1 rounded-sm bg-muted px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                               {group.categoryName}
                             </div>
                             {group.activities.map((activity) => (
-                              <SelectItem key={activity.id} value={activity.id.toString()}>
+                              <SelectItem key={activity.id} value={activity.id.toString()} className="mx-1 w-[calc(100%-0.5rem)]">
                                 {activity.name}
                               </SelectItem>
                             ))}
@@ -351,9 +358,9 @@ export function TimeBlockCell({
                           <SelectValue placeholder="카테고리를 선택하세요" />
                         </SelectTrigger>
                         <SelectContent>
-                          {activities.map((group) => (
-                            <SelectItem key={group.categoryId} value={group.categoryId.toString()}>
-                              {group.categoryName}
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id.toString()}>
+                              {category.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

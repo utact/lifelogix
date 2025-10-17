@@ -4,15 +4,16 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { BookOpen, Save, Sparkles } from "lucide-react"
+import { BookOpen, Save, ChevronsUpDown } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 export function DailyReflection() {
   const { toast } = useToast()
   const [reflection, setReflection] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [savedReflection, setSavedReflection] = useState("")
+  const [isOpen, setIsOpen] = useState(false)
 
   const handleSave = async () => {
     if (!reflection.trim()) {
@@ -35,34 +36,45 @@ export function DailyReflection() {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-primary" />
-            <CardTitle>하루 회고</CardTitle>
-          </div>
-        </div>
-        <CardDescription>오늘 하루를 돌아보고 기록해보세요</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Textarea
-          placeholder="오늘 하루는 어땠나요? 잘한 점, 개선할 점, 내일의 계획 등을 자유롭게 작성해보세요..."
-          value={reflection}
-          onChange={(e) => setReflection(e.target.value)}
-          className="min-h-[120px] resize-none"
-        />
-        <Button onClick={handleSave} disabled={isSaving} className="w-full">
-          <Save className="mr-2 h-4 w-4" />
-          {isSaving ? "저장 중..." : "회고 저장"}
-        </Button>
-        {savedReflection && (
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-            <p className="text-xs text-muted-foreground mb-1">저장된 회고</p>
-            <p className="text-sm">{savedReflection}</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className="bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <CollapsibleTrigger className="w-full text-left">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                <CardTitle>하루 회고</CardTitle>
+              </div>
+              <div className="p-2 rounded-md hover:bg-accent transition-colors">
+                <ChevronsUpDown className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
+              </div>
+            </div>
+            <CardDescription>
+              {isOpen ? "오늘 하루를 돌아보고 기록해보세요." : "펼쳐서 하루 회고 기록하기"}
+            </CardDescription>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="space-y-4 pt-0">
+            <Textarea
+              placeholder="오늘 하루는 어땠나요? 잘한 점, 개선할 점, 내일의 계획 등을 자유롭게 작성해보세요..."
+              value={reflection}
+              onChange={(e) => setReflection(e.target.value)}
+              className="min-h-[120px] resize-none"
+            />
+            <Button onClick={handleSave} disabled={isSaving} className="w-full">
+              <Save className="mr-2 h-4 w-4" />
+              {isSaving ? "저장 중..." : "회고 저장"}
+            </Button>
+            {savedReflection && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <p className="text-xs text-muted-foreground mb-1">저장된 회고</p>
+                <p className="text-sm">{savedReflection}</p>
+              </div>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   )
 }

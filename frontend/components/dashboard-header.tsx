@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button"
 import { LogOut, Settings, User, Users, Home, CalendarDays, Scale } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"

@@ -4,14 +4,16 @@ import { useState, useRef, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react"
-import { api, type TimeBlock, type ActivityGroup } from "@/lib/api"
+import { api, type TimeBlock, type ActivityGroup, type Category } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { TimeBlockCell } from "./time-block-cell"
 import { BulkTimeBlockDialog } from "./bulk-time-block-dialog"
+import { useAuth } from "@/context/AuthContext"
 
 interface TimelineGridProps {
   timeBlocks: TimeBlock[];
   activities: ActivityGroup[];
+  categories: Category[];
   selectedDate: Date;
   onDateChange: (newDate: Date) => void;
   onRefresh: () => void;
@@ -21,12 +23,14 @@ interface TimelineGridProps {
 export function TimelineGrid({ 
   timeBlocks, 
   activities, 
+  categories,
   selectedDate, 
   onDateChange, 
   onRefresh,
   isLoading 
 }: TimelineGridProps) {
   const { toast } = useToast()
+  const { accessToken } = useAuth()
 
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState<number | null>(null)
@@ -47,7 +51,7 @@ export function TimelineGrid({
         targetRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
-  }, []); // Run only once on mount
+  }, []);
 
   const formatDate = (date: Date) => {
     return date.toISOString().split("T")[0]
@@ -110,10 +114,12 @@ export function TimelineGrid({
 
   const handleBulkSave = async (activityId: number, activityName?: string, categoryId?: number) => {
     const selectedSlots = getSelectedRange()
+    if (!accessToken) return;
+
     try {
       let finalActivityId = activityId
       if (activityName && categoryId) {
-        const newActivity = await api.createActivity({
+        const newActivity = await api.createActivity(accessToken, {
           name: activityName,
           categoryId,
         })
@@ -122,7 +128,7 @@ export function TimelineGrid({
 
       await Promise.all(
         selectedSlots.map((slot) =>
-          api.createTimeBlock({
+          api.createTimeBlock(accessToken, {
             date: formatDate(selectedDate),
             startTime: slot.time,
             type: dragType!,
@@ -222,6 +228,8 @@ export function TimelineGrid({
                 timeBlock={slot.block}
                 date={formatDate(selectedDate)}
                 activities={activities}
+                categories={categories}
+                token={accessToken}
                 onUpdate={onRefresh}
                 onDragStart={(type) => handleDragStart(index, type)}
                 onDragMove={() => handleDragMove(index)}
@@ -240,6 +248,7 @@ export function TimelineGrid({
         open={showBulkDialog}
         onOpenChange={setShowBulkDialog}
         activities={activities}
+        categories={categories}
         selectedRange={getSelectedRange()}
         type={dragType || "ACTUAL"}
         onSave={handleBulkSave}

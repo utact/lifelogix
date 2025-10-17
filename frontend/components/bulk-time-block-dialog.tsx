@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Sparkles } from "lucide-react"
-import type { ActivityGroup } from "@/lib/api"
+import type { ActivityGroup, Category } from "@/lib/api"
 
 interface BulkTimeBlockDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   activities: ActivityGroup[]
+  categories: Category[]
   selectedRange: Array<{ time: string; displayTime: string }>
   type: "PLAN" | "ACTUAL"
   onSave: (activityId: number, activityName?: string, categoryId?: number) => void
@@ -22,6 +23,7 @@ export function BulkTimeBlockDialog({
   open,
   onOpenChange,
   activities,
+  categories,
   selectedRange,
   type,
   onSave,
@@ -93,11 +95,11 @@ export function BulkTimeBlockDialog({
                 <SelectContent>
                   {activities.map((group) => (
                     <div key={group.categoryId}>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                      <div className="mx-1 my-1 rounded-sm bg-muted px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                         {group.categoryName}
                       </div>
                       {group.activities.map((activity) => (
-                        <SelectItem key={activity.id} value={activity.id.toString()}>
+                        <SelectItem key={activity.id} value={activity.id.toString()} className="mx-1 w-[calc(100%-0.5rem)]">
                           {activity.name}
                         </SelectItem>
                       ))}
@@ -124,9 +126,9 @@ export function BulkTimeBlockDialog({
                     <SelectValue placeholder="카테고리를 선택하세요" />
                   </SelectTrigger>
                   <SelectContent>
-                    {activities.map((group) => (
-                      <SelectItem key={group.categoryId} value={group.categoryId.toString()}>
-                        {group.categoryName}
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
