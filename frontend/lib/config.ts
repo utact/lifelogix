@@ -7,4 +7,4 @@ export const IDEAL_HOURS = {
   여가: 2.5, // 2-3 hours
 }
 
-export const GOAL_HOURS = 12
+export const GOAL_HOURS = 24

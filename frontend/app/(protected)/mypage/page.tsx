@@ -7,44 +7,50 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/context/AuthContext"
+import { useToast } from "@/hooks/use-toast"
+import { api, type UserResponse } from "@/lib/api"
+import { User, Mail, Calendar, Trophy, Sparkles, LogOut } from "lucide-react"
+import { AIGoalPlanner } from "@/components/ai-goal-planner"
+import { GamificationPanel } from "@/components/gamification-panel"
 
 export default function MyPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { logout } = useAuth()
+  const { logout, isAuthenticated } = useAuth()
   const [stats, setStats] = useState({ categories: 0, activities: 0 })
-  // TODO: Fetch user info from a /api/users/me endpoint
-  const [userInfo, setUserInfo] = useState({
-    username: "Loading...",
-    email: "Loading...",
-    joinDate: "Loading...",
-  })
+  const [userInfo, setUserInfo] = useState<UserResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken")
-    if (!token) {
-      // This should theoretically not be reached due to ProtectedLayout
-      // but as a fallback, we redirect.
-      router.push("/login")
-    } else {
+    if (isAuthenticated && token) {
       fetchData(token)
     }
-  }, [router])
+  }, [isAuthenticated])
 
   const fetchData = async (token: string) => {
+    setIsLoading(true);
     try {
-      const [categories, activityGroups] = await Promise.all([
+      const [userData, categories, activityGroups] = await Promise.all([
+        api.getMe(token),
         api.getCategories(token),
         api.getActivities(token),
-      ])
+      ]);
+      
+      setUserInfo(userData);
+
       const activityCount = activityGroups.reduce((acc, group) => acc + group.activities.length, 0)
       setStats({ categories: categories.length, activities: activityCount })
-      // Once user info API is available, fetch and set it here
-      // e.g., const user = await api.getMe(token); setUserInfo(user);
+
     } catch (error) {
-      toast({ title: "데이터 로드 실패", variant: "destructive" })
+      toast({ 
+        title: "데이터 로드 실패", 
+        description: error instanceof Error ? error.message : "사용자 정보를 불러오는데 실패했습니다.",
+        variant: "destructive" 
+      })
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -56,7 +62,7 @@ export default function MyPage() {
     })
   }
 
-  if (!isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
@@ -75,7 +81,7 @@ export default function MyPage() {
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Profile Info */}
-          <Card className="h-full">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -86,20 +92,20 @@ export default function MyPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">사용자 이름</Label>
-                <Input id="username" value={userInfo.username} disabled />
+                <Input id="username" value={userInfo?.username || ""} disabled />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">이메일</Label>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <Input id="email" value={userInfo.email} disabled />
+                  <Input id="email" value={userInfo?.email || ""} disabled />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="joinDate">가입일</Label>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <Input id="joinDate" value={userInfo.joinDate} disabled />
+                  <Input id="joinDate" value={"YYYY년 MM월 DD일"} disabled />
                 </div>
               </div>
             </CardContent>
