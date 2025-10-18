@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { ActivityActions } from "@/components/activity-actions"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { api, type Category, type ActivityGroup } from "@/lib/api"
+import { api, type ActivityGroup, type Category } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, Plus } from "lucide-react"
 
@@ -199,9 +200,10 @@ export default function ActivitiesPage() {
                       {group.activities.map((activity) => (
                         <div
                           key={activity.id}
-                          className="rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors hover:bg-accent"
+                          className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors hover:bg-accent"
                         >
-                          {activity.name}
+                          <span>{activity.name}</span>
+                          <ActivityActions activity={activity} onSuccess={() => loadData(localStorage.getItem("accessToken")!)} />
                         </div>
                       ))}
                     </div>

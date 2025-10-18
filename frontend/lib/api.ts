@@ -112,6 +112,18 @@ class ApiClient {
   async createActivity(token: string, data: { name: string; categoryId: number; }): Promise<Activity> {
     return this.request("/activities", { method: "POST", body: JSON.stringify(data) }, token);
   }
+  async updateCategory(token: string, id: number, data: { name: string; color: string; }): Promise<Category> {
+    return this.request(`/categories/${id}`, { method: "PUT", body: JSON.stringify(data) }, token);
+  }
+  async deleteCategory(token: string, id: number): Promise<void> {
+    return this.request(`/categories/${id}`, { method: "DELETE" }, token);
+  }
+  async updateActivity(token: string, id: number, data: { name: string; }): Promise<Activity> {
+    return this.request(`/activities/${id}`, { method: "PUT", body: JSON.stringify(data) }, token);
+  }
+  async deleteActivity(token: string, id: number): Promise<void> {
+    return this.request(`/activities/${id}`, { method: "DELETE" }, token);
+  }
 
   async createTimeBlock(token: string, data: CreateTimeBlockRequest): Promise<void> {
     return this.request("/timeline/block", { method: "POST", body: JSON.stringify(data) }, token);

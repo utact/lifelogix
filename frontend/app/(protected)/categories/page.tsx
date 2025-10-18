@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { CategoryActions } from "@/components/category-actions"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -237,12 +238,15 @@ export default function CategoriesPage() {
                     {customCategories.map((category) => {
                       const parent = categories.find((c) => c.id === category.parentId)
                       return (
-                        <div key={category.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
-                          <div className="h-10 w-10 rounded-md" style={{ backgroundColor: category.color }} />
-                          <div>
-                            <div className="font-medium">{category.name}</div>
-                            <div className="text-xs text-muted-foreground">{parent?.name} 하위</div>
+                        <div key={category.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-md" style={{ backgroundColor: category.color }} />
+                            <div>
+                              <div className="font-medium">{category.name}</div>
+                              <div className="text-xs text-muted-foreground">{parent?.name} 하위</div>
+                            </div>
                           </div>
+                          <CategoryActions category={category} onSuccess={() => loadCategories(localStorage.getItem("accessToken")!)} />
                         </div>
                       )
                     })}
