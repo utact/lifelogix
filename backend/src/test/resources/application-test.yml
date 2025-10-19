@@ -1,10 +1,6 @@
-# 이 파일은 @SpringBootTest를 사용하는 전체 통합 테스트(Full Integration Test)를 위한 설정입니다.
-# @WebMvcTest를 사용한 슬라이스 테스트에서는 이 설정이 직접적으로 사용되지 않습니다.
-# (H2 인메모리 데이터베이스 및 테스트용 JWT secret 설정)
-
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL
+    url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -14,8 +10,3 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
-
-jwt:
-  secret: bGlmZWxvZ2l4LWp3dC1zZWNyZXQta2V5LWZvci10ZXN0LWVudmlyb25tZW50Cg==
-  access-token-expiration-ms: 3600000 # 1시간
-  refresh-token-expiration-ms: 604800000 # 7일

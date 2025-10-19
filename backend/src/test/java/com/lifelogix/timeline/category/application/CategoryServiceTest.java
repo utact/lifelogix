@@ -48,7 +48,7 @@ class CategoryServiceTest {
 
     @BeforeEach
     void setUp() {
-        user = new User(1L, "test@example.com", "password", "tester", null);
+        user = User.builder().id(1L).email("test@example.com").nickname("tester").build();
         systemParentCategory = new Category(10L, "운동", "#123456", null, null); // user가 null인 시스템 카테고리
     }
 

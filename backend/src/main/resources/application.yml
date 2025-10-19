@@ -12,5 +12,5 @@ spring:
 # JWT 관련 공통 설정
 jwt:
   secret: ${JWT_SECRET}
-  access-token-expiration-ms: 3600000    # 1시간
-  refresh-token-expiration-ms: 604800000 # 7일
+  access-token-validity-seconds: 3600    # 1시간
+  refresh-token-validity-seconds: 604800 # 7일

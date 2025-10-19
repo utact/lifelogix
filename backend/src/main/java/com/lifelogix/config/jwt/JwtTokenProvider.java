@@ -1,19 +1,16 @@
 package com.lifelogix.config.jwt;
 
-import com.lifelogix.exception.BusinessException;
-import com.lifelogix.exception.ErrorCode;
-import com.lifelogix.user.domain.User;
+import com.lifelogix.user.PrincipalDetails;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.util.Date;
 
 @Slf4j
@@ -21,33 +18,40 @@ import java.util.Date;
 public class JwtTokenProvider {
 
     private final SecretKey key;
-    private final long accessTokenExpirationMilliseconds;
-    private final long refreshTokenExpirationMilliseconds;
+    private final JwtProperties jwtProperties;
 
-    public JwtTokenProvider(JwtProperties jwtProperties) { // @ConfigurationProperties 사용
+    @Autowired
+    public JwtTokenProvider(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
         byte[] keyBytes = Decoders.BASE64.decode(jwtProperties.getSecret());
-        this.key = new SecretKeySpec(keyBytes, "HmacSHA256");
-        this.accessTokenExpirationMilliseconds = jwtProperties.getAccessTokenExpirationMs();
-        this.refreshTokenExpirationMilliseconds = jwtProperties.getRefreshTokenExpirationMs();
+        this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateAccessToken(User user) {
-        return generateToken(user, accessTokenExpirationMilliseconds);
+    public String generateAccessToken(PrincipalDetails principalDetails) {
+        return generateToken(principalDetails, jwtProperties.getAccessTokenValiditySeconds());
     }
 
-    public String generateRefreshToken(User user) {
-        return generateToken(user, refreshTokenExpirationMilliseconds);
+    public String generateRefreshToken(PrincipalDetails principalDetails) {
+        return generateToken(principalDetails, jwtProperties.getRefreshTokenValiditySeconds());
     }
 
-    private String generateToken(User user, long expirationMilliseconds) {
+    private String generateToken(PrincipalDetails principalDetails, long validitySeconds) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expirationMilliseconds);
+        Date validity = new Date(now.getTime() + validitySeconds * 1000);
 
         return Jwts.builder()
-                .subject(user.getId().toString())
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(key)
+                .setSubject(String.valueOf(principalDetails.getId()))
+                .setIssuedAt(now)
+                .setExpiration(validity)
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public Claims getClaims(String token) {
+        return Jwts.parser()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 }

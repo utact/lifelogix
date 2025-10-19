@@ -1,7 +1,7 @@
 package com.lifelogix.timeline.category.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lifelogix.config.SecurityConfig;
+import com.lifelogix.config.TestSecurityConfig;
 import com.lifelogix.config.jwt.JwtProperties;
 import com.lifelogix.exception.BusinessException;
 import com.lifelogix.exception.ErrorCode;
@@ -19,7 +19,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CategoryController.class)
-@Import({SecurityConfig.class, CategoryControllerTest.TestConfig.class})
+@Import({TestSecurityConfig.class, CategoryControllerTest.TestConfig.class})
 @ActiveProfiles("local")
 @DisplayName("CategoryController 통합 테스트")
 class CategoryControllerTest {
@@ -65,7 +65,6 @@ class CategoryControllerTest {
     class CreateCategory {
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 201 Created 반환")
         void create_success() throws Exception {
             // given
@@ -76,6 +75,7 @@ class CategoryControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/v1/categories")
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -99,7 +99,6 @@ class CategoryControllerTest {
         }
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("실패 - 이름 중복으로 409 Conflict 반환")
         void create_fail_duplicateName() throws Exception {
             // given
@@ -109,6 +108,7 @@ class CategoryControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/v1/categories")
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -120,7 +120,6 @@ class CategoryControllerTest {
     @DisplayName("GET /api/v1/categories - 모든 카테고리 조회")
     class GetAllCategories {
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 200 OK와 카테고리 목록 반환")
         void getAll_success() throws Exception {
             // given
@@ -131,7 +130,8 @@ class CategoryControllerTest {
             given(categoryService.findAllCategoriesForUser(userId)).willReturn(responses);
 
             // when & then
-            mockMvc.perform(get("/api/v1/categories"))
+            mockMvc.perform(get("/api/v1/categories")
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString()))))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$.length()").value(2))
@@ -154,7 +154,6 @@ class CategoryControllerTest {
         private final Long categoryId = 1L;
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 200 OK와 수정된 카테고리 반환")
         void update_success() throws Exception {
             // given
@@ -164,6 +163,7 @@ class CategoryControllerTest {
 
             // when & then
             mockMvc.perform(put("/api/v1/categories/{categoryId}", categoryId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -172,7 +172,6 @@ class CategoryControllerTest {
         }
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("실패 - 권한 없음으로 403 Forbidden 반환")
         void update_fail_permissionDenied() throws Exception {
             // given
@@ -182,6 +181,7 @@ class CategoryControllerTest {
 
             // when & then
             mockMvc.perform(put("/api/v1/categories/{categoryId}", categoryId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -195,7 +195,6 @@ class CategoryControllerTest {
         private final Long categoryId = 1L;
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 204 No Content 반환")
         void delete_success() throws Exception {
             // given
@@ -203,12 +202,12 @@ class CategoryControllerTest {
 
             // when & then
             mockMvc.perform(delete("/api/v1/categories/{categoryId}", categoryId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf()))
                     .andExpect(status().isNoContent());
         }
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("실패 - 사용 중인 카테고리로 400 Bad Request 반환")
         void delete_fail_categoryInUse() throws Exception {
             // given
@@ -217,6 +216,7 @@ class CategoryControllerTest {
 
             // when & then
             mockMvc.perform(delete("/api/v1/categories/{categoryId}", categoryId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf()))
                     .andExpect(status().isBadRequest());
         }

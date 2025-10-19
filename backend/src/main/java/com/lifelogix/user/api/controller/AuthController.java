@@ -1,7 +1,7 @@
 package com.lifelogix.user.api.controller;
 
-import com.lifelogix.user.api.dto.request.LoginRequest;
-import com.lifelogix.user.api.dto.request.RegisterRequest;
+import com.lifelogix.user.api.dto.request.UserLoginRequest;
+import com.lifelogix.user.api.dto.request.UserRegisterRequest;
 import com.lifelogix.user.api.dto.response.TokenResponse;
 import com.lifelogix.user.application.UserService;
 import jakarta.validation.Valid;
@@ -27,18 +27,18 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody UserRegisterRequest request) {
         log.info("[Backend|AuthController] Register - Received request for email: {}", request.email());
-        userService.register(request.email(), request.password(), request.username());
+        userService.register(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(Map.of("message", "회원가입이 성공적으로 완료되었습니다."));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody UserLoginRequest request) {
         log.info("[Backend|AuthController] Login - Received request for email: {}", request.email());
-        TokenResponse tokenResponse = userService.login(request.email(), request.password());
+        TokenResponse tokenResponse = userService.login(request);
         return ResponseEntity.ok(tokenResponse);
     }
 
@@ -46,14 +46,15 @@ public class AuthController {
     public ResponseEntity<TokenResponse> refreshAccessToken(@RequestBody Map<String, String> request) {
         log.info("[Backend|AuthController] RefreshAccessToken - Received request");
         String refreshToken = request.get("refreshToken");
-        String newAccessToken = userService.refreshAccessToken(refreshToken);
-        return ResponseEntity.ok(TokenResponse.of(newAccessToken, refreshToken));
+        // String newAccessToken = userService.refreshAccessToken(refreshToken);
+        // return ResponseEntity.ok(TokenResponse.of(newAccessToken, refreshToken));
+        return null;
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@AuthenticationPrincipal Long userId) {
         log.info("[Backend|AuthController] Logout - Received request for userId: {}", userId);
-        userService.logout(userId);
+        // userService.logout(userId);
         return ResponseEntity.ok().build();
     }
 }
