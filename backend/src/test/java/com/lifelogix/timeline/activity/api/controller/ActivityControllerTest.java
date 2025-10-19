@@ -1,7 +1,7 @@
 package com.lifelogix.timeline.activity.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lifelogix.config.SecurityConfig;
+import com.lifelogix.config.TestSecurityConfig;
 import com.lifelogix.config.jwt.JwtProperties;
 import com.lifelogix.exception.BusinessException;
 import com.lifelogix.exception.ErrorCode;
@@ -20,7 +20,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ActivityController.class)
-@Import({SecurityConfig.class, ActivityControllerTest.TestConfig.class})
+@Import({TestSecurityConfig.class, ActivityControllerTest.TestConfig.class})
 @ActiveProfiles("local")
 @DisplayName("ActivityController 통합 테스트")
 class ActivityControllerTest {
@@ -66,7 +66,6 @@ class ActivityControllerTest {
     @DisplayName("POST /api/v1/activities - 활동 생성")
     class CreateActivity {
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 201 Created")
         void create_success() throws Exception {
             // given
@@ -76,6 +75,7 @@ class ActivityControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/v1/activities")
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -84,7 +84,6 @@ class ActivityControllerTest {
         }
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("실패 - 중복된 이름으로 409 Conflict")
         void create_fail_duplicateName() throws Exception {
             // given
@@ -94,6 +93,7 @@ class ActivityControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/v1/activities")
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -105,7 +105,6 @@ class ActivityControllerTest {
     @DisplayName("GET /api/v1/activities - 카테고리별 활동 조회")
     class GetAllActivities {
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 200 OK")
         void getAll_success() throws Exception {
             // given
@@ -115,7 +114,8 @@ class ActivityControllerTest {
             given(activityService.findAllActivitiesGroupedByCategory(userId)).willReturn(responses);
 
             // when & then
-            mockMvc.perform(get("/api/v1/activities"))
+            mockMvc.perform(get("/api/v1/activities")
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString()))))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].categoryName").value("운동"))
                     .andExpect(jsonPath("$[0].activities[0].name").value("달리기"));
@@ -136,7 +136,6 @@ class ActivityControllerTest {
         private final Long activityId = 1L;
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 200 OK")
         void update_success() throws Exception {
             // given
@@ -146,6 +145,7 @@ class ActivityControllerTest {
 
             // when & then
             mockMvc.perform(put("/api/v1/activities/{activityId}", activityId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -154,7 +154,6 @@ class ActivityControllerTest {
         }
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("실패 - 권한 없음으로 403 Forbidden")
         void update_fail_permissionDenied() throws Exception {
             // given
@@ -164,6 +163,7 @@ class ActivityControllerTest {
 
             // when & then
             mockMvc.perform(put("/api/v1/activities/{activityId}", activityId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -177,19 +177,19 @@ class ActivityControllerTest {
         private final Long activityId = 1L;
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 204 No Content")
         void delete_success() throws Exception {
             // given
             willDoNothing().given(activityService).deleteActivity(userId, activityId);
 
             // when & then
-            mockMvc.perform(delete("/api/v1/activities/{activityId}", activityId).with(csrf()))
+            mockMvc.perform(delete("/api/v1/activities/{activityId}", activityId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
+                            .with(csrf()))
                     .andExpect(status().isNoContent());
         }
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("실패 - 활동이 사용 중으로 400 Bad Request")
         void delete_fail_activityInUse() throws Exception {
             // given
@@ -197,7 +197,9 @@ class ActivityControllerTest {
                     .when(activityService).deleteActivity(userId, activityId);
 
             // when & then
-            mockMvc.perform(delete("/api/v1/activities/{activityId}", activityId).with(csrf()))
+            mockMvc.perform(delete("/api/v1/activities/{activityId}", activityId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest());
         }
     }

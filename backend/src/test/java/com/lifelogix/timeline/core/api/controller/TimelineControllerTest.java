@@ -1,7 +1,7 @@
 package com.lifelogix.timeline.core.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lifelogix.config.SecurityConfig;
+import com.lifelogix.config.TestSecurityConfig;
 import com.lifelogix.config.jwt.JwtProperties;
 import com.lifelogix.exception.BusinessException;
 import com.lifelogix.exception.ErrorCode;
@@ -22,7 +22,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(TimelineController.class)
-@Import({SecurityConfig.class, TimelineControllerTest.TestConfig.class})
+@Import({TestSecurityConfig.class, TimelineControllerTest.TestConfig.class})
 @ActiveProfiles("local")
 @DisplayName("TimelineController 통합 테스트")
 class TimelineControllerTest {
@@ -70,7 +70,6 @@ class TimelineControllerTest {
     @DisplayName("GET /api/v1/timeline - 일일 타임라인 조회")
     class GetDailyTimeline {
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 200 OK")
         void get_success() throws Exception {
             // given
@@ -81,7 +80,8 @@ class TimelineControllerTest {
             given(timelineService.getDailyTimeline(userId, date)).willReturn(response);
 
             // when & then
-            mockMvc.perform(get("/api/v1/timeline").param("date", date.toString()))
+            mockMvc.perform(get("/api/v1/timeline").param("date", date.toString())
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString()))))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.date").value(date.toString()));
         }
@@ -99,7 +99,6 @@ class TimelineControllerTest {
     @DisplayName("POST /api/v1/timeline/block - 타임블록 생성/수정")
     class CreateOrUpdateTimeBlock {
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 201 Created")
         void create_success() throws Exception {
             // given
@@ -109,6 +108,7 @@ class TimelineControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/v1/timeline/block")
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -123,7 +123,6 @@ class TimelineControllerTest {
         private final Long timeBlockId = 1L;
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 200 OK")
         void update_success() throws Exception {
             // given
@@ -133,6 +132,7 @@ class TimelineControllerTest {
 
             // when & then
             mockMvc.perform(put("/api/v1/timeline/block/{timeBlockId}", timeBlockId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -141,7 +141,6 @@ class TimelineControllerTest {
         }
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("실패 - 권한 없음으로 403 Forbidden")
         void update_fail_permissionDenied() throws Exception {
             // given
@@ -151,6 +150,7 @@ class TimelineControllerTest {
 
             // when & then
             mockMvc.perform(put("/api/v1/timeline/block/{timeBlockId}", timeBlockId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -163,7 +163,6 @@ class TimelineControllerTest {
     class DeleteTimeBlock {
 
         @Test
-        @WithMockUser(username = "1")
         @DisplayName("성공 - 204 No Content")
         void delete_success() throws Exception {
             // given
@@ -171,7 +170,9 @@ class TimelineControllerTest {
             willDoNothing().given(timelineService).deleteTimeBlock(userId, timeBlockId);
 
             // when & then
-            mockMvc.perform(delete("/api/v1/timeline/block/{timeBlockId}", timeBlockId).with(csrf()))
+            mockMvc.perform(delete("/api/v1/timeline/block/{timeBlockId}", timeBlockId)
+                            .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.subject(userId.toString())))
+                            .with(csrf()))
                     .andExpect(status().isNoContent());
         }
     }

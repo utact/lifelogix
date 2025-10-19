@@ -51,7 +51,7 @@ class ActivityServiceTest {
 
     @BeforeEach
     void setUp() {
-        user = new User(1L, "test@example.com", "password", "tester", null);
+        user = User.builder().id(1L).email("test@example.com").nickname("tester").build();
         category = new Category(10L, "운동", "#123456", user, null);
     }
 
@@ -98,7 +98,7 @@ class ActivityServiceTest {
         @DisplayName("실패 - 다른 사용자의 카테고리에 생성 시도")
         void create_fail_permissionDenied() {
             // given
-            User otherUser = new User(2L, "other@test.com", "pw", "other", null);
+            User otherUser = User.builder().id(2L).email("other@test.com").nickname("other").build();
             Category otherUserCategory = new Category(11L, "공부", "#FFFFFF", otherUser, null);
             CreateActivityRequest request = new CreateActivityRequest("달리기", otherUserCategory.getId());
 

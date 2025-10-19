@@ -52,7 +52,7 @@ class TimelineServiceTest {
 
     @BeforeEach
     void setUp() {
-        user = new User(1L, "test@example.com", "password", "tester", null);
+        user = User.builder().id(1L).email("test@example.com").nickname("tester").build();
         category = new Category(100L, "운동", "#111111", user, null);
         Category anotherCategory = new Category(200L, "공부", "#222222", user, null);
         activity = new Activity(10L, "달리기", user, category);
@@ -98,8 +98,7 @@ class TimelineServiceTest {
         @Test
         @DisplayName("실패 - 다른 사용자의 활동으로 기록 시도")
         void create_fail_permissionDenied() {
-            // given
-            User otherUser = new User(2L, "other@test.com", "pw", "other", null);
+            User otherUser = User.builder().id(2L).email("other@test.com").nickname("other").build();
             Activity otherActivity = new Activity(12L, "독서", otherUser, category);
             CreateTimeBlockRequest permissionRequest = new CreateTimeBlockRequest(LocalDate.now(), LocalTime.of(9, 0), TimeBlockType.PLAN, otherActivity.getId());
             given(activityRepository.findById(permissionRequest.activityId())).willReturn(Optional.of(otherActivity));
@@ -163,7 +162,7 @@ class TimelineServiceTest {
         void update_fail_permissionDenied_onTimeBlock() {
             // given
             Long timeBlockId = 1L;
-            User otherUser = new User(2L, "other", "p", "o", null);
+            User otherUser = User.builder().id(2L).nickname("other").build();
             Activity otherActivity = new Activity(12L, "독서", otherUser, category);
             TimeBlock otherUsersBlock = new TimeBlock(timeBlockId, LocalDate.now(), LocalTime.now(), TimeBlockType.PLAN, otherActivity);
             UpdateTimeBlockRequest request = new UpdateTimeBlockRequest(activity.getId());
@@ -183,7 +182,7 @@ class TimelineServiceTest {
         void update_fail_permissionDenied_onActivity() {
             // given
             Long timeBlockId = 1L;
-            User otherUser = new User(2L, "other", "p", "o", null);
+            User otherUser = User.builder().id(2L).nickname("other").build();
             Activity otherActivity = new Activity(12L, "독서", otherUser, category);
             TimeBlock timeBlock = new TimeBlock(timeBlockId, LocalDate.now(), LocalTime.now(), TimeBlockType.PLAN, activity);
             UpdateTimeBlockRequest request = new UpdateTimeBlockRequest(otherActivity.getId());
@@ -225,7 +224,7 @@ class TimelineServiceTest {
         void delete_fail_permissionDenied() {
             // given
             Long timeBlockId = 1L;
-            User otherUser = new User(2L, "other@test.com", "pw", "other", null);
+            User otherUser = User.builder().id(2L).email("other@test.com").nickname("other").build();
             Activity otherActivity = new Activity(12L, "독서", otherUser, category);
             TimeBlock timeBlock = new TimeBlock(timeBlockId, LocalDate.now(), LocalTime.now(), TimeBlockType.PLAN, otherActivity);
             given(timeBlockRepository.findById(timeBlockId)).willReturn(Optional.of(timeBlock));

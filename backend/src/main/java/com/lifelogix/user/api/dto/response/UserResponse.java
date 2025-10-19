@@ -1,13 +1,16 @@
 package com.lifelogix.user.api.dto.response;
 
 import com.lifelogix.user.domain.User;
+import lombok.Builder;
 
-public record UserResponse(
-        Long id,
-        String email,
-        String username
-) {
+@Builder
+public record UserResponse(Long id, String email, String nickname) {
+
     public static UserResponse from(User user) {
-        return new UserResponse(user.getId(), user.getEmail(), user.getUsername());
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .build();
     }
 }
