@@ -30,13 +30,14 @@ Next.js에서는 **API 라우트 핸들러가 `rewrites`보다 우선순위가 �
 문제는 `handler` 함수 내부의 URL 조합 로직에 있었습니다.
 
 **`app/api/proxy/[...path]/route.ts` (수정 전):**
+
 ```typescript
-// BACKEND_URL에 이미 '/api/v1'이 포함되어 있음
-const BACKEND_URL = 'https://lifelogix-dca5.onrender.com/api/v1';
+// BACKEND_URL에 이미 '/api/v1'이 포함
+const BACKEND_URL = "https://lifelogix-dca5.onrender.com/api/v1";
 
 async function handler(req: NextRequest) {
   // 프론트에서 넘어온 path: '/v1/auth/login'
-  const path = req.nextUrl.pathname.replace('/api/proxy', '');
+  const path = req.nextUrl.pathname.replace("/api/proxy", "");
 
   // 최종 url: '.../api/v1' + '/v1/auth/login' => 경로 중복 발생!
   const url = `${BACKEND_URL}${path}`;
@@ -55,13 +56,14 @@ async function handler(req: NextRequest) {
 `BACKEND_URL`에서 중복되는 경로를 제거하고, 핸들러 내에서 올바른 전체 경로를 조합하도록 수정했습니다.
 
 **`app/api/proxy/[...path]/route.ts` (수정 후):**
+
 ```typescript
-// '/api/v1' 부분을 제거하여 순수 도메인만 남김
-const BACKEND_URL = 'https://lifelogix-dca5.onrender.com';
+// '/api/v1' 부분을 제거하여 순수 도메인만 존재
+const BACKEND_URL = "https://lifelogix-dca5.onrender.com";
 
 async function handler(req: NextRequest) {
-  const path = req.nextUrl.pathname.replace('/api/proxy', ''); // path = '/v1/auth/login'
-  
+  const path = req.nextUrl.pathname.replace("/api/proxy", ""); // path = '/v1/auth/login'
+
   // 백엔드의 기본 API 경로인 '/api'를 직접 붙여 올바른 URL을 생성
   const url = `${BACKEND_URL}/api${path}`; // 최종 url = '.../api/v1/auth/login'
   // ...
@@ -73,11 +75,11 @@ async function handler(req: NextRequest) {
 API 라우트 핸들러가 모든 프록시 역할을 담당하게 되었으므로, 더 이상 필요 없어진 `rewrites` 함수를 `next.config.mjs`에서 완전히 삭제하여 설정 파일의 역할을 명확히 했습니다.
 
 **`next.config.mjs` (수정 후):**
+
 ```javascript
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // ... 기존 eslint, typescript 설정 등
-  
   // rewrites 함수를 완전히 제거
 };
 
@@ -86,7 +88,7 @@ export default nextConfig;
 
 ## 4. 결과 (Result)
 
--   프록시 요청 경로가 `https://.../api/v1/auth/login`으로 정상적으로 수정되었습니다.
--   로그인 시 `401` 에러가 사라지고 정상적으로 인증 토큰을 수신합니다.
--   Render 대시보드에 백엔드 `UserService`의 로그가 정상적으로 출력되는 것을 확인했습니다.
--   프록시 로직을 API 라우트 핸들러로 일원화하여 프로젝트 구조가 더 명확해졌습니다.
+- 프록시 요청 경로가 `https://.../api/v1/auth/login`으로 정상적으로 수정되었습니다.
+- 로그인 시 `401` 에러가 사라지고 정상적으로 인증 토큰을 수신합니다.
+- Render 대시보드에 백엔드 `UserService`의 로그가 정상적으로 출력되는 것을 확인했습니다.
+- 프록시 로직을 API 라우트 핸들러로 일원화하여 프로젝트 구조가 더 명확해졌습니다.
