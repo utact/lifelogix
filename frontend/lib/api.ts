@@ -58,7 +58,8 @@ export interface ActivityGroup {
 export interface UserResponse {
   id: number;
   email: string;
-  username: string;
+  nickname: string;
+  createdAt: string;
 }
 
 export interface CreateTimeBlockRequest {

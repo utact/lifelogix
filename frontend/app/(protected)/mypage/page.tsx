@@ -92,7 +92,7 @@ export default function MyPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">사용자 이름</Label>
-                <Input id="username" value={userInfo?.username || ""} disabled />
+                <Input id="username" value={userInfo?.nickname || ""} disabled />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">이메일</Label>
@@ -105,7 +105,7 @@ export default function MyPage() {
                 <Label htmlFor="joinDate">가입일</Label>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <Input id="joinDate" value={"YYYY년 MM월 DD일"} disabled />
+                  <Input id="joinDate" value={userInfo?.createdAt ? new Date(userInfo.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : ""} disabled />
                 </div>
               </div>
             </CardContent>
