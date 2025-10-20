@@ -6,6 +6,11 @@ jwt:
 
 # Render 배포 환경(prod) 전용 설정
 spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
   datasource:
     url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
     username: ${PGUSER}

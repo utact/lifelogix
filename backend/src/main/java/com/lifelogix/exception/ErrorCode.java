@@ -18,6 +18,7 @@ public enum ErrorCode {
     TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
     USER_PASSWORD_NOT_MATCH(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다."),
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 유효하지 않습니다."),
 
     // 403 FORBIDDEN
     PERMISSION_DENIED(HttpStatus.FORBIDDEN, "해당 리소스를 사용할 권한이 없습니다."),
@@ -31,7 +32,7 @@ public enum ErrorCode {
     // 409 CONFLICT
     USER_EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     CATEGORY_NAME_DUPLICATE(HttpStatus.CONFLICT, "이미 사용 중인 카테고리 이름입니다."),
-    ACTIVITY_NAME_DUPLICATE(HttpStatus.CONFLICT, "해당 카테고리에 이미 사용 중인 활동 이름입니다.");
+    ACTIVITY_NAME_DUPLICATE(HttpStatus.CONFLICT, "해당 카테고리에 동일한 이름의 활동이 이미 존재합니다.");
 
     private final HttpStatus status;
     private final String message;

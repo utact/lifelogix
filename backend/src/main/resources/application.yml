@@ -3,11 +3,14 @@ spring:
   profiles:
     active: prod
   jpa:
-  # JPA 관련 공통 설정
-  properties:
-    hibernate:
-      show_sql: true
-      format_sql: true
+    # JPA 관련 공통 설정
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+  data:
+    redis:
+      port: 6379
 
 # JWT 관련 공통 설정
 jwt:
