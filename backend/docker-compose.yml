@@ -24,3 +24,17 @@ services:
     # 데이터를 영속적으로 저장하기 위해 볼륨 연결
     volumes:
       - ./data:/var/lib/postgresql/data
+
+  # 2. Redis 서비스
+  redis:
+    image: redis:alpine
+    container_name: lifelogix-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data # Redis 데이터는 'redis-data'라는 이름의 볼륨에 저장
+
+volumes:
+  redis-data:
+    # 'redis-data' -> Docker가 관리하는 '이름 있는 볼륨(named volume)'
+    # 'db' 서비스는 './data'라는 '바인드 마운트(bind mount)'를 사용
