@@ -7,7 +7,6 @@ async function handleResponse<T>(response: Response, requestInfo: { method: stri
     console.error(`[Frontend|API] <-- 401 Unauthorized ${method} ${url}. Redirecting to login.`);
     if (typeof window !== 'undefined') {
       localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
       window.location.href = '/login';
     }
     throw new Error("Unauthorized");
@@ -36,7 +35,7 @@ async function handleResponse<T>(response: Response, requestInfo: { method: stri
   return data as T;
 }
 
-export interface AuthResponse { accessToken: string; refreshToken: string; tokenType: string; }
+export interface AccessTokenResponse { accessToken: string; tokenType: string; }
 export interface RegisterRequest { email: string; password: string; username: string; }
 export interface LoginRequest { email: string; password: string; }
 export interface Category {
@@ -89,7 +88,7 @@ class ApiClient {
   async register(data: RegisterRequest): Promise<{ message: string }> {
     return this.request("/auth/register", { method: "POST", body: JSON.stringify(data) });
   }
-  async login(data: LoginRequest): Promise<AuthResponse> {
+  async login(data: LoginRequest): Promise<AccessTokenResponse> {
     return this.request("/auth/login", { method: "POST", body: JSON.stringify(data) });
   }
   async logout(token: string): Promise<void> {

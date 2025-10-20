@@ -17,3 +17,9 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-validity-seconds: 3600    # 1시간
   refresh-token-validity-seconds: 604800 # 7일
+
+# OAuth2 관련 공통 설정
+oauth2:
+  authorized-redirect-uris:
+    - http://localhost:3000/oauth/redirect
+    - http://localhost:5173/oauth/redirect

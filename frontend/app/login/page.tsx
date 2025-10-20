@@ -92,19 +92,15 @@ export default function LoginPage() {
               </div>
             </div>
             <div className="mt-4 space-y-2">
-              <Button variant="outline" className="w-full relative bg-transparent" disabled>
-                <Lock className="mr-2 h-4 w-4" />
-                Google로 계속하기
-                <Badge variant="secondary" className="ml-auto text-[10px]">
-                  v1.1.0
-                </Badge>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/api/v1/oauth2/authorization/google?redirect_uri=http://localhost:3000/oauth/redirect">
+                  Google로 계속하기
+                </Link>
               </Button>
-              <Button variant="outline" className="w-full relative bg-transparent" disabled>
-                <Lock className="mr-2 h-4 w-4" />
-                GitHub로 계속하기
-                <Badge variant="secondary" className="ml-auto text-[10px]">
-                  v1.1.0
-                </Badge>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/api/v1/oauth2/authorization/github?redirect_uri=http://localhost:3000/oauth/redirect">
+                  GitHub로 계속하기
+                </Link>
               </Button>
             </div>
           </div>
