@@ -67,7 +67,7 @@ class ActivityServiceTest {
 
             given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
             given(categoryRepository.findById(request.categoryId())).willReturn(Optional.of(category));
-            given(activityRepository.existsByCategoryAndName(category, request.name())).willReturn(false);
+            given(activityRepository.existsByUserAndCategoryAndName(user, category, request.name())).willReturn(false);
             given(activityRepository.save(any(Activity.class))).willReturn(newActivity);
 
             // when
@@ -120,7 +120,7 @@ class ActivityServiceTest {
             CreateActivityRequest request = new CreateActivityRequest("달리기", category.getId());
             given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
             given(categoryRepository.findById(request.categoryId())).willReturn(Optional.of(category));
-            given(activityRepository.existsByCategoryAndName(category, request.name())).willReturn(true);
+            given(activityRepository.existsByUserAndCategoryAndName(user, category, request.name())).willReturn(true);
 
             // when
             BusinessException exception = assertThrows(BusinessException.class,
@@ -164,7 +164,7 @@ class ActivityServiceTest {
             UpdateActivityRequest request = new UpdateActivityRequest("빠르게 달리기");
             Activity activity = new Activity(1L, "달리기", user, category);
             given(activityRepository.findById(activity.getId())).willReturn(Optional.of(activity));
-            given(activityRepository.existsByCategoryAndName(category, request.name())).willReturn(false);
+            given(activityRepository.existsByUserAndCategoryAndName(user, category, request.name())).willReturn(false);
 
             // when
             ActivityResponse response = activityService.updateActivity(user.getId(), activity.getId(), request);
