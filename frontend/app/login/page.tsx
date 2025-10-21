@@ -93,12 +93,12 @@ export default function LoginPage() {
             </div>
             <div className="mt-4 space-y-2">
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/api/v1/oauth2/authorization/google?redirect_uri=http://localhost:3000/oauth/redirect">
+                <Link href="/api/proxy/oauth2/authorization/google?redirect_uri=http://localhost:3000/oauth/redirect">
                   Google로 계속하기
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/api/v1/oauth2/authorization/github?redirect_uri=http://localhost:3000/oauth/redirect">
+                <Link href="/api/proxy/oauth2/authorization/github?redirect_uri=http://localhost:3000/oauth/redirect">
                   GitHub로 계속하기
                 </Link>
               </Button>
