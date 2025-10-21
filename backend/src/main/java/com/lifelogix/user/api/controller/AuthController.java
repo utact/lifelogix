@@ -1,9 +1,14 @@
 package com.lifelogix.user.api.controller;
 
+import com.lifelogix.config.jwt.JwtProperties;
 import com.lifelogix.user.api.dto.request.UserLoginRequest;
 import com.lifelogix.user.api.dto.request.UserRegisterRequest;
+import com.lifelogix.user.api.dto.response.AccessTokenResponse;
 import com.lifelogix.user.api.dto.response.TokenResponse;
 import com.lifelogix.user.application.UserService;
+import com.lifelogix.util.CookieUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -11,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +31,7 @@ public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     private final UserService userService;
+    private final JwtProperties jwtProperties;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody UserRegisterRequest request) {
@@ -36,25 +43,42 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@Valid @RequestBody UserLoginRequest request) {
+    public ResponseEntity<AccessTokenResponse> login(@Valid @RequestBody UserLoginRequest request, HttpServletResponse response) {
         log.info("[Backend|AuthController] Login - Received request for email: {}", request.email());
         TokenResponse tokenResponse = userService.login(request);
-        return ResponseEntity.ok(tokenResponse);
+
+        CookieUtil.addCookie(
+                response,
+                "refresh_token",
+                tokenResponse.refreshToken(),
+                (int) jwtProperties.getRefreshTokenValiditySeconds()
+        );
+
+        return ResponseEntity.ok(AccessTokenResponse.of(tokenResponse.accessToken()));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refreshAccessToken(@RequestBody Map<String, String> request) {
+    public ResponseEntity<AccessTokenResponse> refreshAccessToken(
+            @CookieValue(name = "refresh_token") String refreshToken,
+            HttpServletResponse response) {
         log.info("[Backend|AuthController] RefreshAccessToken - Received request");
-        String refreshToken = request.get("refreshToken");
-        // String newAccessToken = userService.refreshAccessToken(refreshToken);
-        // return ResponseEntity.ok(TokenResponse.of(newAccessToken, refreshToken));
-        return null;
+        TokenResponse newTokens = userService.refreshAccessToken(refreshToken);
+
+        CookieUtil.addCookie(
+                response,
+                "refresh_token",
+                newTokens.refreshToken(),
+                (int) jwtProperties.getRefreshTokenValiditySeconds()
+        );
+
+        return ResponseEntity.ok(AccessTokenResponse.of(newTokens.accessToken()));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@AuthenticationPrincipal Long userId) {
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal Long userId, HttpServletRequest request, HttpServletResponse response) {
         log.info("[Backend|AuthController] Logout - Received request for userId: {}", userId);
-        // userService.logout(userId);
+        userService.logout(userId);
+        CookieUtil.deleteCookie(request, response, "refresh_token");
         return ResponseEntity.ok().build();
     }
 }

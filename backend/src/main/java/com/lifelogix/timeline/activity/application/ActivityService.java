@@ -48,7 +48,7 @@ public class ActivityService {
             throw new BusinessException(ErrorCode.PERMISSION_DENIED);
         }
 
-        if (activityRepository.existsByCategoryAndName(category, request.name())) {
+        if (activityRepository.existsByUserAndCategoryAndName(user, category, request.name())) {
             log.warn("[Backend|ActivityService] CreateActivity - Failed: Duplicate activity name '{}' for userId: {}", request.name(), userId);
             throw new BusinessException(ErrorCode.ACTIVITY_NAME_DUPLICATE);
         }
@@ -86,7 +86,7 @@ public class ActivityService {
         Activity activity = findActivityById(activityId);
         validateActivityOwner(userId, activity);
 
-        if (!activity.getName().equals(request.name()) && activityRepository.existsByCategoryAndName(activity.getCategory(), request.name())) {
+        if (!activity.getName().equals(request.name()) && activityRepository.existsByUserAndCategoryAndName(activity.getUser(), activity.getCategory(), request.name())) {
             log.warn("[Backend|ActivityService] UpdateActivity - Failed: Duplicate activity name '{}' for userId: {}", request.name(), userId);
             throw new BusinessException(ErrorCode.ACTIVITY_NAME_DUPLICATE);
         }

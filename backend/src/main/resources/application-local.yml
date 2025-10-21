@@ -1,5 +1,27 @@
 # 로컬 개발 환경 전용 설정
 spring:
+  # 데이터베이스 설정
+  datasource:
+    url: jdbc:postgresql://localhost:5432/lifelogix
+    username: lifelogix
+    password: lifelogix
+    driver-class-name: org.postgresql.Driver
+
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: create-drop # 로컬 개발용
+    properties:
+      hibernate:
+        show_sql: true   # SQL 로그 출력
+        format_sql: true # SQL 로그 포맷팅
+
+  # Redis 설정
+  data:
+    redis:
+      host: localhost # 로컬 Redis 호스트
+
+  # OAuth2 클라이언트 설정 (환경 변수 또는 직접 값 사용)
   security:
     oauth2:
       client:
@@ -7,26 +29,18 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope:
-              - email
-              - profile
+            scope: [ email, profile ]
           github:
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
-            scope:
-              - user:email
-              - read:user
-  datasource:
-    url: jdbc:postgresql://localhost:5432/lifelogix
-    username: lifelogix
-    password: lifelogix
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+            scope: [ user:email, read:user ]
 
+# JWT 설정 (로컬 전용 시크릿으로 공통 설정 오버라이드)
 jwt:
   secret: 'a2VlcGl0c2VjcmV0Zm9ybGlmZWxvZ2l4cHJvamVjdGJ5dGFjdA=='
+
+# OAuth2 설정 (로컬용 리다이렉트 URI)
+oauth2:
+  authorized-redirect-uris:
+    - http://localhost:3000/oauth/redirect
+    - http://localhost:5173/oauth/redirect

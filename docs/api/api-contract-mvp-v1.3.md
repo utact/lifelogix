@@ -20,7 +20,8 @@ erDiagram
         Long id PK
         String email UK
         String password
-        String username
+        String nickname
+        LocalDateTime createdAt
     }
 
     CATEGORY {
@@ -298,6 +299,21 @@ erDiagram
 #### `DELETE /timeline/block/{timeBlockId}`
 - **Description:** 특정 타임블록을 삭제합니다. (JWT 인증 필요)
 - **Success Response (204 NO CONTENT):** (No Content)
+
+
+### 3.5. User (`/users`)
+
+#### `GET /users/me`
+- **Description:** 현재 로그인된 사용자의 정보를 조회합니다. (JWT 인증 필요)
+- **Success Response (200 OK):**
+  ```json
+  {
+    "id": 1,
+    "email": "test@lifelogix.com",
+    "nickname": "tester",
+    "createdAt": "2025-10-20T10:00:00"
+  }
+  ```
 
 
 ---
