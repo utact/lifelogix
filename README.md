@@ -1,4 +1,4 @@
-# 🕰️ LifeLogix: An Operating System for an Intentional Life
+# 🕰️ LifeLogix: An OS for an Intentional Life
 
 [![Project Status: MVP Phase](https://img.shields.io/badge/status-MVP_In_Progress-blue.svg)](https://github.com/UTACt/lifelogix/issues)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
