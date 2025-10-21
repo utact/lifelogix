@@ -10,6 +10,7 @@ import com.lifelogix.exception.ErrorCode;
 import com.lifelogix.user.api.dto.request.UserLoginRequest;
 import com.lifelogix.user.api.dto.request.UserRegisterRequest;
 import com.lifelogix.user.api.dto.response.TokenResponse;
+import com.lifelogix.user.domain.RoleType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,6 +42,7 @@ public class UserService {
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .nickname(request.username())
+                .role(RoleType.USER)
                 .build();
 
         userRepository.save(user);
