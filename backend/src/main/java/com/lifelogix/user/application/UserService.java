@@ -42,7 +42,7 @@ public class UserService {
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .nickname(request.username())
-                .role(RoleType.USER)
+                .roleType(RoleType.USER)
                 .build();
 
         userRepository.save(user);
