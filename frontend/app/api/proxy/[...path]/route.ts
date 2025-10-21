@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // 환경 변수에서 백엔드 URL을 가져오거나 환경(NODE_ENV)에 따라 기본값 설정
-const BACKEND_URL = process.env.BACKEND_URL ||
+// '/api/v1' 경로 제거
+const BACKEND_URL_BASE = process.env.BACKEND_URL ||
                     (process.env.NODE_ENV === 'development'
                       ? 'http://localhost:8080' // 개발 환경일 경우 로컬 백엔드
                       : 'https://lifelogix-dca5.onrender.com'); // 운영 환경일 경우 배포된 백엔드
 
 async function handler(req: NextRequest) {
   // 요청 경로에서 '/api/proxy' 부분을 제거하여 실제 API 경로를 추출
-  // 예: '/api/proxy/v1/auth/login' -> '/v1/auth/login'
   const path = req.nextUrl.pathname.replace('/api/proxy', '');
 
-  // 백엔드 API의 전체 URL을 구성 ('/api' 접두사 추가)
-  const url = `${BACKEND_URL}/api${path}${req.nextUrl.search}`;
+  // 백엔드 API의 전체 URL을 구성
+  let url;
+  if (path.startsWith('/oauth2/authorization')) {
+    // OAuth2 인증 경로는 '/api' 접두사 없이 백엔드 루트 경로로 구성
+    url = `${BACKEND_URL_BASE}${path}${req.nextUrl.search}`;
+    console.log(`[API Proxy][${process.env.NODE_ENV || 'unknown'}] OAuth path detected. Forwarding without /api prefix.`);
+  } else {
+    // 그 외 API는 '/api' 접두사 추가 (기존 v1 API 등)
+    url = `${BACKEND_URL_BASE}/api${path}${req.nextUrl.search}`;
+  }
 
   // 현재 환경(development/production)과 함께 로그 출력
   console.log(`[API Proxy][${process.env.NODE_ENV || 'unknown'}] Incoming request:`, req.method, req.nextUrl.pathname);

@@ -54,3 +54,7 @@ tasks.named('test') {
 springBoot {
 	buildInfo()
 }
+
+gitProperties {
+	failOnNoGitDirectory = false
+}
