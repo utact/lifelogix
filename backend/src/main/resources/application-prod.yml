@@ -1,24 +1,46 @@
+# Render 배포 환경 전용 설정
 server:
-  port: ${PORT}
+  port: ${PORT} # 서버 포트
 
-jwt:
-  secret: ${JWT_SECRET}
-
-# Render 배포 환경(prod) 전용 설정
 spring:
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD}
+  # 데이터베이스 설정
   datasource:
     url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
     username: ${PGUSER}
     password: ${PGPASSWORD}
     driver-class-name: org.postgresql.Driver
+
+  # JPA 설정
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop # validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        # show_sql, format_sql: 운영 환경에서는 성능을 위해 비활성화
+
+  # Redis 설정
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      # password: ${REDIS_PASSWORD} # Redis 비밀번호 미설정
+
+  # OAuth2 클라이언트 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: [ email, profile ]
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope: [ user:email, read:user ]
+
+# OAuth2 설정 (운영 환경용 리다이렉트 URI)
+oauth2:
+  authorized-redirect-uris:
+    - https://lifelogix.vercel.app/oauth/redirect # Google/GitHub에 등록된 실제 URI 확인 필요

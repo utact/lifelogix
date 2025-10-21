@@ -1,25 +1,21 @@
 # 모든 환경에 적용되는 공통 설정
 spring:
   profiles:
-    active: prod
+    active: prod # 기본 활성 프로필
   jpa:
-    # JPA 관련 공통 설정
     properties:
       hibernate:
-        show_sql: true
-        format_sql: true
+        # PostgreSQL 방언 설정 (모든 환경 공통)
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   data:
     redis:
-      port: 6379
+      port: 6379 # 기본 Redis 포트 (환경별로 host 재정의)
 
 # JWT 관련 공통 설정
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET} # 환경 변수 사용
   access-token-validity-seconds: 3600    # 1시간
   refresh-token-validity-seconds: 604800 # 7일
 
-# OAuth2 관련 공통 설정
-oauth2:
-  authorized-redirect-uris:
-    - http://localhost:3000/oauth/redirect
-    - http://localhost:5173/oauth/redirect
+# oauth2 관련 공통 설정 (authorized-redirect-uris는 환경별로 분리)
+# 필요시 여기에 공통 OAuth2 설정 추가
