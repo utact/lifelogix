@@ -10,7 +10,7 @@ spring:
   # JPA 설정
   jpa:
     hibernate:
-      ddl-auto: create-drop # 로컬 개발용
+      ddl-auto: update
     properties:
       hibernate:
         show_sql: true   # SQL 로그 출력
