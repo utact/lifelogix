@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -51,6 +52,15 @@ public class GlobalExceptionHandler {
         );
         log.warn("[Backend|ExceptionHandler] BusinessException - URI: {}, Code: {}, Message: {}", request.getRequestURI(), errorCode.name(), errorCode.getMessage());
         return new ResponseEntity<>(errorResponse, errorCode.getStatus());
+    }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<Map<String, String>> handleRateLimitException(RateLimitException ex) {
+        Map<String, String> response = Map.of(
+            "error", "Too Many Requests",
+            "message", ex.getMessage()
+        );
+        return new ResponseEntity<>(response, HttpStatus.TOO_MANY_REQUESTS);
     }
 
     // 처리하지 못한 모든 예외에 대한 최종 처리 (500 Internal Server Error)
