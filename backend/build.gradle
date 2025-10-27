@@ -39,8 +39,7 @@ dependencies {
 	// Bucket4j (Rate Limiting)
 	implementation 'com.giffing.bucket4j.spring.boot.starter:bucket4j-spring-boot-starter:0.13.0'
 	implementation 'javax.cache:cache-api:1.1.1'
-	implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
-	implementation 'com.github.ben-manes.caffeine:jcache:3.1.8'
+	implementation 'com.bucket4j:bucket4j_jdk17-redis:8.10.1'
 
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
