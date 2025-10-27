@@ -35,12 +35,18 @@ spring:
             client-secret: ${GITHUB_CLIENT_SECRET}
             scope: [ user:email, read:user ]
 
-# JWT 설정 (로컬 전용 시크릿으로 공통 설정 오버라이드)
+# JWT 설정 (환경 변수 또는 기본값 사용)
 jwt:
-  secret: 'a2VlcGl0c2VjcmV0Zm9ybGlmZWxvZ2l4cHJvamVjdGJ5dGFjdA=='
+  secret: ${JWT_SECRET:a2VlcGl0c2VjcmV0Zm9ybGlmZWxvZ2l4cHJvamVjdGJ5dGFjdA==} # 로컬 개발용 기본 시크릿. 운영에서는 반드시 환경변수 설정.
 
 # OAuth2 설정 (로컬용 리다이렉트 URI)
 oauth2:
   authorized-redirect-uris:
     - http://localhost:3000/oauth/redirect
     - http://localhost:5173/oauth/redirect
+
+# CORS 설정 (로컬용)
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - http://localhost:5173

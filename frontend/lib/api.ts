@@ -36,6 +36,7 @@ async function handleResponse<T>(response: Response, requestInfo: { method: stri
 }
 
 export interface AccessTokenResponse { accessToken: string; tokenType: string; }
+export interface OAuthTokenResponse { accessToken: string; }
 export interface RegisterRequest { email: string; password: string; username: string; }
 export interface LoginRequest { email: string; password: string; }
 export interface Category {
@@ -83,6 +84,13 @@ class ApiClient {
 
     const response = await fetch(url, { ...options, headers });
     return handleResponse<T>(response, { method, url });
+  }
+
+  async exchangeCodeForToken(code: string): Promise<OAuthTokenResponse> {
+    return this.request("/auth/oauth-token", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    });
   }
 
   async register(data: RegisterRequest): Promise<{ message: string }> {

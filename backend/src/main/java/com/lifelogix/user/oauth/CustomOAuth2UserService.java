@@ -55,9 +55,13 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     private User createUser(OAuth2UserInfo userInfo, ProviderType providerType) {
+        String nickname = (userInfo.getName() == null || userInfo.getName().isEmpty()) 
+                ? providerType.toString() + "_" + userInfo.getId()
+                : userInfo.getName();
+
         User user = User.builder()
-                .email(userInfo.getEmail())
-                .nickname(userInfo.getName())
+                .email(userInfo.getEmail()) // email can be null
+                .nickname(nickname)
                 .providerType(providerType)
                 .providerId(userInfo.getId())
                 .roleType(RoleType.USER)
