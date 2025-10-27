@@ -37,7 +37,7 @@ spring:
 
 # JWT 설정 (환경 변수 또는 기본값 사용)
 jwt:
-  secret: ${JWT_SECRET:a2VlcGl0c2VjcmV0Zm9ybGlmZWxvZ2l4cHJvamVjdGJ5dGFjdA==} # 로컬 개발용 기본 시크릿. 운영에서는 반드시 환경변수 설정.
+  secret: 'a2VlcGl0c2VjcmV0Zm9ybGlmZWxvZ2l4cHJvamVjdGJ5dGFjdA=='
 
 # OAuth2 설정 (로컬용 리다이렉트 URI)
 oauth2:
