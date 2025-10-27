@@ -37,7 +37,7 @@ dependencies {
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
 
 	// Bucket4j (Rate Limiting)
-	implementation 'com.github.vladimir-bukhtoyarov:bucket4j-spring-boot-starter:8.4.0'
+	implementation 'com.giffing.bucket4j.spring.boot.starter:bucket4j-spring-boot-starter:0.13.0'
 	implementation 'javax.cache:cache-api:1.1.1'
 	implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
 	implementation 'com.github.ben-manes.caffeine:jcache:3.1.8'
