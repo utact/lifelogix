@@ -43,6 +43,7 @@ public class UserService {
                 .password(passwordEncoder.encode(request.password()))
                 .nickname(request.username())
                 .roleType(RoleType.USER)
+                .providerType(com.lifelogix.user.domain.ProviderType.LOCAL)
                 .build();
 
         userRepository.save(user);
