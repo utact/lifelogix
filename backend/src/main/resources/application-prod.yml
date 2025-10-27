@@ -44,3 +44,8 @@ spring:
 oauth2:
   authorized-redirect-uris:
     - https://lifelogix.vercel.app/oauth/redirect # Google/GitHub에 등록된 실제 URI 확인 필요
+
+# CORS 설정 (운영 환경용)
+cors:
+  allowed-origins:
+    - https://lifelogix.vercel.app
