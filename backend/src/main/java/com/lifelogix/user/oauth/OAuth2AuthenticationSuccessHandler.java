@@ -1,8 +1,5 @@
 package com.lifelogix.user.oauth;
 
-import com.lifelogix.config.jwt.JwtProperties;
-import com.lifelogix.config.jwt.JwtTokenProvider;
-import com.lifelogix.user.PrincipalDetails;
 import com.lifelogix.util.CookieUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -10,7 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -18,7 +14,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.net.URI;
-import java.time.Duration;
 import java.util.Optional;
 
 import static com.lifelogix.user.oauth.HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME;
@@ -28,11 +23,9 @@ import static com.lifelogix.user.oauth.HttpCookieOAuth2AuthorizationRequestRepos
 @RequiredArgsConstructor
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final JwtTokenProvider tokenProvider;
-    private final JwtProperties jwtProperties;
     private final HttpCookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
-    private final RedisTemplate<String, String> redisTemplate;
     private final OAuth2Properties oAuth2Properties;
+    private final OAuthTempCodeService oAuthTempCodeService;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
@@ -57,24 +50,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         String targetUrl = redirectUri.orElse(getDefaultTargetUrl());
 
-        PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
-        String accessToken = tokenProvider.generateAccessToken(principalDetails);
-
-        // Refresh Token 생성, Redis 저장 및 쿠키 설정
-        String refreshToken = tokenProvider.generateRefreshToken(principalDetails);
-        Long userId = principalDetails.getId();
-        long refreshTokenValiditySeconds = jwtProperties.getRefreshTokenValiditySeconds();
-
-        redisTemplate.opsForValue().set(
-                userId.toString(),
-                refreshToken,
-                Duration.ofSeconds(refreshTokenValiditySeconds)
-        );
-
-        CookieUtil.addCookie(response, "refresh_token", refreshToken, (int) refreshTokenValiditySeconds);
+        String code = oAuthTempCodeService.generateAndStore(authentication);
 
         return UriComponentsBuilder.fromUriString(targetUrl)
-                .queryParam("token", accessToken)
+                .queryParam("code", code)
                 .build().toUriString();
     }
 
@@ -92,7 +71,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                     URI authorizedURI = URI.create(authorizedRedirectUri);
                     // Host, port, and path must match
                     return authorizedURI.getHost().equalsIgnoreCase(clientRedirectUri.getHost())
-                            && authorizedURI.getPort() == clientRedirectUri.getPort();
+                            && authorizedURI.getPort() == clientRedirectUri.getPort()
+                            && authorizedURI.getPath().equals(clientRedirectUri.getPath());
                 });
     }
 }

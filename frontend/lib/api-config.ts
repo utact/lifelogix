@@ -12,10 +12,10 @@ export const apiConfig = {
   apiUrl: NEXT_PUBLIC_BACKEND_URL,
   oauth: {
     google: {
-      authorizationUrl: `/api/proxy/oauth2/authorization/google?redirect_uri=${OAUTH_REDIRECT_PATH}`,
+      authorizationUrl: `/oauth2/authorization/google?redirect_uri=${OAUTH_REDIRECT_PATH}`,
     },
     github: {
-      authorizationUrl: `/api/proxy/oauth2/authorization/github?redirect_uri=${OAUTH_REDIRECT_PATH}`,
+      authorizationUrl: `/oauth2/authorization/github?redirect_uri=${OAUTH_REDIRECT_PATH}`,
     },
   },
 };
