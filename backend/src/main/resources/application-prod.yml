@@ -57,14 +57,14 @@ bucket4j:
     - cache-name: buckets
       url: /api/v1/auth/.*
       rate-limits:
-        - bandwidth:
+        - bandwidths:
             - capacity: 20
               time: 1
               unit: minutes
     - cache-name: buckets
       url: /api/v1/.*
       rate-limits:
-        - bandwidth:
+        - bandwidths:
             - capacity: 100
               time: 1
               unit: minutes
