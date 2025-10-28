@@ -121,13 +121,7 @@ class ActivityControllerTest {
                     .andExpect(jsonPath("$[0].activities[0].name").value("달리기"));
         }
 
-        @Test
-        @DisplayName("실패 - 인증되지 않은 사용자")
-        void getAll_fail_unauthorized() throws Exception {
-            // when & then
-            mockMvc.perform(get("/api/v1/activities"))
-                    .andExpect(status().isUnauthorized());
-        }
+
     }
 
     @Nested

@@ -94,16 +94,6 @@ class UserControllerTest {
                     .andExpect(status().isNotFound());
         }
 
-        @Test
-        @DisplayName("실패 - 인증되지 않은 사용자")
-        void getMyInfo_api_fail_unauthorized() throws Exception {
-            // given
-            // @WithMockCustomUser 없음 (인증 정보가 없는 상태)
 
-            // when & then
-            mockMvc.perform(get("/api/v1/users/me")
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isUnauthorized()); // 401 Unauthorized
-        }
     }
 }

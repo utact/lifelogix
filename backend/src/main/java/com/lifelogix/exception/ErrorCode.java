@@ -32,7 +32,10 @@ public enum ErrorCode {
     // 409 CONFLICT
     USER_EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     CATEGORY_NAME_DUPLICATE(HttpStatus.CONFLICT, "이미 사용 중인 카테고리 이름입니다."),
-    ACTIVITY_NAME_DUPLICATE(HttpStatus.CONFLICT, "해당 카테고리에 동일한 이름의 활동이 이미 존재합니다.");
+    ACTIVITY_NAME_DUPLICATE(HttpStatus.CONFLICT, "해당 카테고리에 동일한 이름의 활동이 이미 존재합니다."),
+
+    // 429 TOO_MANY_REQUESTS
+    TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "요청 횟수가 너무 많습니다. 잠시 후 다시 시도해주세요.");
 
     private final HttpStatus status;
     private final String message;

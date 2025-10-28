@@ -55,12 +55,17 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(RateLimitException.class)
-    public ResponseEntity<Map<String, String>> handleRateLimitException(RateLimitException ex) {
-        Map<String, String> response = Map.of(
-            "error", "Too Many Requests",
-            "message", ex.getMessage()
+    public ResponseEntity<ErrorResponse> handleRateLimitException(RateLimitException ex, HttpServletRequest request) {
+        ErrorCode errorCode = ErrorCode.TOO_MANY_REQUESTS;
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                errorCode.getStatus().value(),
+                errorCode.getStatus().getReasonPhrase(),
+                errorCode.getMessage(),
+                request.getRequestURI()
         );
-        return new ResponseEntity<>(response, HttpStatus.TOO_MANY_REQUESTS);
+        log.warn("[Backend|ExceptionHandler] RateLimitException - URI: {}, Message: {}", request.getRequestURI(), ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.TOO_MANY_REQUESTS);
     }
 
     // 처리하지 못한 모든 예외에 대한 최종 처리 (500 Internal Server Error)

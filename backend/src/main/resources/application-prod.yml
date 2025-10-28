@@ -49,3 +49,22 @@ oauth2:
 cors:
   allowed-origins:
     - https://lifelogix.vercel.app
+
+# Bucket4j Rate Limiting 설정
+bucket4j:
+  enabled: true
+  filters:
+    - cache-name: buckets
+      url: /api/v1/auth/.*
+      rate-limits:
+        - bandwidth:
+            - capacity: 20
+              time: 1
+              unit: minutes
+    - cache-name: buckets
+      url: /api/v1/.*
+      rate-limits:
+        - bandwidth:
+            - capacity: 100
+              time: 1
+              unit: minutes

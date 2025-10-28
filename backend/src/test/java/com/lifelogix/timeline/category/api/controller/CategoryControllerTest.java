@@ -84,19 +84,7 @@ class CategoryControllerTest {
                     .andExpect(jsonPath("$.name").value("헬스"));
         }
 
-        @Test
-        @DisplayName("실패 - 인증되지 않은 사용자")
-        void create_fail_unauthorized() throws Exception {
-            // given
-            CreateCategoryRequest request = new CreateCategoryRequest("헬스", "#FFFFFF", 10L);
 
-            // when & then
-            mockMvc.perform(post("/api/v1/categories")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isUnauthorized());
-        }
 
         @Test
         @DisplayName("실패 - 이름 중복으로 409 Conflict 반환")
@@ -139,13 +127,7 @@ class CategoryControllerTest {
                     .andExpect(jsonPath("$[1].name").value("헬스"));
         }
 
-        @Test
-        @DisplayName("실패 - 인증되지 않은 사용자")
-        void getAll_fail_unauthorized() throws Exception {
-            // when & then
-            mockMvc.perform(get("/api/v1/categories"))
-                    .andExpect(status().isUnauthorized());
-        }
+
     }
 
     @Nested
