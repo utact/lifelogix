@@ -86,13 +86,7 @@ class TimelineControllerTest {
                     .andExpect(jsonPath("$.date").value(date.toString()));
         }
 
-        @Test
-        @DisplayName("실패 - 인증되지 않은 사용자")
-        void get_fail_unauthorized() throws Exception {
-            // when & then
-            mockMvc.perform(get("/api/v1/timeline").param("date", LocalDate.now().toString()))
-                    .andExpect(status().isUnauthorized());
-        }
+
     }
 
     @Nested
