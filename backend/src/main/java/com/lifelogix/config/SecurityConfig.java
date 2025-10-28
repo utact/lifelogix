@@ -121,9 +121,12 @@ public class SecurityConfig {
 
     @Bean
     public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
-        return jwt -> {
-            Long userId = Long.parseLong(jwt.getSubject());
-            return new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+        return new Converter<Jwt, AbstractAuthenticationToken>() {
+            @Override
+            public AbstractAuthenticationToken convert(Jwt jwt) {
+                Long userId = Long.parseLong(jwt.getSubject());
+                return new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+            }
         };
     }
 
