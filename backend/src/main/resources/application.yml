@@ -22,7 +22,7 @@ bucket4j:
 # JWT 관련 공통 설정
 jwt:
   secret: ${JWT_SECRET} # 환경 변수 사용
-  access-token-validity-seconds: 3600    # 1시간
+  access-token-validity-seconds: 3600
   refresh-token-validity-seconds: 604800 # 7일
 
 # oauth2 관련 공통 설정 (authorized-redirect-uris는 환경별로 분리)
