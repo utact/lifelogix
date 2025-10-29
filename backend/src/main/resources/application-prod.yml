@@ -53,6 +53,7 @@ cors:
 # Bucket4j Rate Limiting 설정
 bucket4j:
   enabled: true
+  cache-to-use: redis # Bucket4j 캐시 매니저로 Redis 사용
   filters:
     - cache-name: buckets
       url: /api/v1/auth/.*
