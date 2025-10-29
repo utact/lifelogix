@@ -44,8 +44,7 @@ spring:
             jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
             user-name-attribute: sub
 
-server:
-  port: 8080
+ 
 
 jwt:
   secret: ${JWT_SECRET}
