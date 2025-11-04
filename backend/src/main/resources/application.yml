@@ -12,9 +12,8 @@ spring:
       host: localhost
       port: 6379
   cache:
-    type: jcache
-    jcache:
-      provider: org.redisson.jcache.configuration.RedissonCachingProvider
+    type: simple
+
 
 bucket4j:
   cache-to-use: jcache # Bucket4j 캐시 매니저로 JCache 사용

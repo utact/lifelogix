@@ -4,6 +4,8 @@ import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
+import HelpIcon from '@/components/HelpIcon';
+
 const FullScreenLoader = () => (
   <div className="flex h-screen items-center justify-center bg-background">
     <div className="text-muted-foreground">Verifying authentication...</div>
@@ -24,5 +26,10 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     return <FullScreenLoader />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <HelpIcon />
+    </>
+  );
 }

@@ -25,9 +25,8 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
   cache:
-    type: jcache
-    jcache:
-      provider: org.redisson.jcache.configuration.RedissonCachingProvider
+    type: simple
+
   security:
     oauth2:
       client:
@@ -51,13 +50,14 @@ jwt:
   expiration: 3600000 # 1 hour
 
 # Bucket4j Rate Limiting 설정
-bucket4j:
-  cache-to-use: jcache # Bucket4j 캐시 매니저로 JCache 사용
-  enabled: true
-  filters:
-    - cache-name: rate-limit-buckets
-      url: /api/v1/auth/**
-      rate-limits:
-        - capacity: 10
-          refill-greedily: 10
-          refill-period: 1 # seconds
+# bucket4j:
+#   cache-to-use: jcache # Bucket4j 캐시 매니저로 JCache 사용
+#   enabled: true
+#   filters:
+#     - cache-name: rate-limit-buckets
+#       url: /api/v1/auth/**
+#       rate-limits:
+#         - bandwidths:
+#             - capacity: 10
+#               time: 1
+#               unit: seconds
