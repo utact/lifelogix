@@ -42,9 +42,9 @@ public class SecurityConfig {
 
     private final JwtProperties jwtProperties;
     private final CorsProperties corsProperties;
-    private final CustomOAuth2UserService customOauth2UserService;
-    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
-    private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
+    // private final CustomOAuth2UserService customOauth2UserService;
+    // private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    // private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
 
     @PostConstruct
@@ -89,7 +89,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**", "/api/auth/**", "/api/v1/health", "/oauth2/**", "/login/oauth2/code/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth2 -> oauth2
+                                /*.oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint -> endpoint
                                 .baseUri("/oauth2/authorization")
                                 .authorizationRequestRepository(httpCookieOAuth2AuthorizationRequestRepository)
@@ -101,7 +101,7 @@ public class SecurityConfig {
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
                         jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
-                ));
+                ))*/;
 
         return http.build();
     }

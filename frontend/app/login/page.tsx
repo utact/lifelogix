@@ -112,7 +112,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6">
+{/*          <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
@@ -144,7 +144,7 @@ export default function LoginPage() {
                 githubLoginButton
               )}
             </div>
-          </div>
+          </div>*/}
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
             계정이 없으신가요?{" "}
